@@ -6,11 +6,15 @@ from firebase_admin.auth import UserNotFoundError
 import requests
 import os
 
+from services.firebase_service import get_firestore_client
+from config import get_settings
+
 router = APIRouter(prefix="/auth", tags=["authentication"])
-db = firestore.client()
+db = get_firestore_client()
+settings = get_settings()
 
 # Firebase Web API Key
-FIREBASE_WEB_API_KEY = os.getenv("FIREBASE_WEB_API_KEY", "")
+FIREBASE_WEB_API_KEY = settings.firebase_web_api_key
 FIREBASE_AUTH_ENDPOINT = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={FIREBASE_WEB_API_KEY}"
 FIREBASE_LOGIN_ENDPOINT = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_WEB_API_KEY}"
 

@@ -6,7 +6,13 @@ import os
 
 # Initialize Firebase
 def init_firebase():
-    if not firebase_admin._apps:
+    try:
+        # Check if the app is already initialized
+        firebase_admin.get_app()
+        print(f"ℹ️  Firebase already initialized")
+        return True
+    except ValueError:
+        # If not initialized, proceed
         try:
             settings = get_settings()
             
@@ -44,9 +50,6 @@ def init_firebase():
         except Exception as e:
             print(f"❌ Firebase initialization failed: {str(e)}")
             raise
-    else:
-        print(f"ℹ️  Firebase already initialized")
-        return True
 
 try:
     init_firebase()

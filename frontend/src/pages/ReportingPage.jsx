@@ -31,6 +31,7 @@ export default function ReportingPage() {
   const [cameraActive, setCameraActive] = useState(false)
   const [cameraStarted, setCameraStarted] = useState(false)
   const streamRef = useRef(null)
+  const [cameraKey, setCameraKey] = useState(0)
 
   // Get location on mount
   useEffect(() => {
@@ -38,9 +39,7 @@ export default function ReportingPage() {
     
     // Cleanup: stop camera on unmount
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop())
-      }
+      stopCamera()
     }
   }, [])
 
@@ -68,14 +67,36 @@ export default function ReportingPage() {
           try {
             const checkResult = await locationApi.checkDuplicateLocation(latitude, longitude)
             if (checkResult.data.is_duplicate) {
-              console.warn('⚠️ Location conflict detected:', checkResult.data)
-              setLocationConflict({
-                isDuplicate: true,
-                nearbyReports: checkResult.data.nearby_reports,
-                closestDistance: checkResult.data.distance_to_closest,
-                message: `Location already reported ${checkResult.data.distance_to_closest}m away`
-              })
-              setError(`❌ ${checkResult.data.nearby_reports.length} active report(s) within 100m`)
+              // Validate nearby reports exist to avoid showing deleted/stale entries
+              const rawNearby = checkResult.data.nearby_reports || []
+              const validated = []
+              for (const item of rawNearby) {
+                try {
+                  const res = await reportingApi.getReport(item.id)
+                  const report = res.data?.report
+                  if (report && report.imageUrl && report.status === 'active') {
+                    validated.push(item)
+                  }
+                } catch (_) {
+                  // Ignore 404/missing
+                }
+              }
+
+              if (validated.length > 0) {
+                console.warn('⚠️ Location conflict detected (validated):', validated)
+                const closest = validated.reduce((min, r) => (r.distance < min ? r.distance : min), validated[0].distance)
+                setLocationConflict({
+                  isDuplicate: true,
+                  nearbyReports: validated,
+                  closestDistance: closest,
+                  message: `Location already reported ${closest}m away`
+                })
+                setError(`❌ ${validated.length} active report(s) within 100m`)
+              } else {
+                setLocationConflict(null)
+                setError('')
+                console.log('✅ Location is clear after validation')
+              }
             } else {
               setLocationConflict(null)
               console.log('✅ Location is clear')
@@ -101,9 +122,24 @@ export default function ReportingPage() {
     }
   }
 
+  const stopCamera = () => {
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop())
+        streamRef.current = null
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null
+      }
+    } catch (_) {}
+    setCameraActive(false)
+  }
+
   const startCamera = async () => {
     try {
       setError('')
+      // Ensure any previous stream is stopped before starting a new one
+      stopCamera()
       const constraints = {
         video: {
           facingMode: 'environment',
@@ -119,7 +155,10 @@ export default function ReportingPage() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current.play()
+          const p = videoRef.current.play()
+          if (p && typeof p.then === 'function') {
+            p.catch(() => {})
+          }
           setCameraActive(true)
         }
       }
@@ -168,8 +207,11 @@ export default function ReportingPage() {
       }
       
       console.log(`📷 Image captured: ${(imageData.length / 1024).toFixed(2)} KB`)
-      
+
       setImage(imageData)
+      // Turn off camera immediately after capture to free device
+      stopCamera()
+      setCameraStarted(false)
       setError('')
       setVerifying(true)
       setVerification(null)
@@ -453,6 +495,7 @@ export default function ReportingPage() {
                     objectFit: 'cover',
                     transform: 'scaleX(-1)'
                   }}
+                  key={cameraKey}
                 />
                 <button
                   onClick={captureImage}
@@ -463,11 +506,8 @@ export default function ReportingPage() {
                 </button>
                 <button
                   onClick={() => {
+                    stopCamera()
                     setCameraStarted(false)
-                    if (streamRef.current) {
-                      streamRef.current.getTracks().forEach(track => track.stop())
-                    }
-                    setCameraActive(false)
                   }}
                   className="w-full mt-2 py-2 bg-gray-400 hover:bg-gray-500 text-white font-semibold rounded-lg text-sm"
                 >
@@ -526,6 +566,11 @@ export default function ReportingPage() {
                   setVerification(null)
                   setCloudinaryUrl(null)
                   setCloudinaryPublicId(null)
+                  setVerifying(false)
+                  // Restart camera cleanly for retake
+                  setCameraStarted(true)
+                  setCameraKey((k) => k + 1)
+                  startCamera()
                 }}
                 className="py-2 bg-gray-400 hover:bg-gray-500 text-white font-semibold rounded-lg"
               >

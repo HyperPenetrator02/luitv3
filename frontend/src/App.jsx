@@ -12,10 +12,14 @@ import CleanerPage from './pages/CleanerPage'
 import CleaningPage from './pages/CleaningPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import AdminDashboard from './pages/AdminDashboard'
+import AnalyticsPage from './pages/AnalyticsPage'
 
 function App() {
   const user = useAuthStore((state) => state.user)
   const userType = useAuthStore((state) => state.userType)
+  const hydrated = useAuthStore((state) => state.hydrated)
+
+  if (!hydrated) return null
 
   return (
     <Router>
@@ -45,6 +49,7 @@ function App() {
 
         {/* Leaderboard - Public */}
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
 
         {/* Admin Route */}
         <Route path="/admin" element={<AdminDashboard />} />

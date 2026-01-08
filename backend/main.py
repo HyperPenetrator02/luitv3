@@ -53,6 +53,21 @@ def health_check():
         "admin_enabled": True
     }
 
+@app.get("/env")
+def get_environment():
+    """Returns environment information for adaptive UI"""
+    import socket
+    hostname = socket.gethostname().lower()
+    env = os.getenv("BACKEND_ENV", "development")
+    is_desktop = any(key in hostname for key in ['dev', 'desktop', 'laptop', 'home']) or env == "development"
+    
+    return {
+        "is_desktop": is_desktop,
+        "hostname": hostname,
+        "env": env,
+        "platform_detected": "Desktop" if is_desktop else "Cloud"
+    }
+
 @app.get("/")
 def root():
     return {"message": "Welcome to LUIT API"}
@@ -71,6 +86,27 @@ logger.info("✅ All routes registered")
 
 if __name__ == "__main__":
     import uvicorn
+    import webbrowser
+    import socket
+    from threading import Timer
+
     port = int(os.getenv("BACKEND_PORT", 5000))
-    logger.info(f"🚀 Starting LUIT Backend on http://0.0.0.0:{port}")
+    env = os.getenv("BACKEND_ENV", "development")
+    
+    # Simple desktop detection (if hostname is not 'railway' or common cloud hosts)
+    hostname = socket.gethostname().lower()
+    is_desktop = any(key in hostname for key in ['dev', 'desktop', 'laptop', 'home']) or env == "development"
+
+    def open_browser():
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        logger.info(f"🖥️  Desktop mode detected. Opening {frontend_url}")
+        webbrowser.open(frontend_url)
+
+    if is_desktop:
+        logger.info(f"🚀 Starting LUIT Desktop version on http://0.0.0.0:{port}")
+        # Wait 2 seconds for server to start before opening browser
+        Timer(2, open_browser).start()
+    else:
+        logger.info(f"☁️  Starting LUIT Cloud version on http://0.0.0.0:{port}")
+
     uvicorn.run(app, host="0.0.0.0", port=port)

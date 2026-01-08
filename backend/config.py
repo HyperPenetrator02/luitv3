@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
+        extra = "allow"
         populate_by_name = True  # Allow both field name and alias
 
 @lru_cache()

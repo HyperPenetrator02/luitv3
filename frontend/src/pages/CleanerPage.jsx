@@ -28,11 +28,8 @@ export default function CleanerPage() {
     setLoading(true)
     try {
       const response = await cleaningApi.getAvailableCleanings(selectedTab, userType)
-      console.log('Cleanings response:', response.data)
-      setCleanings(response.data.cleanings || [])
-      if (!response.data.cleanings || response.data.cleanings.length === 0) {
-        console.log('No cleanings found for wasteType:', selectedTab)
-      }
+      const availableCleanings = response.data.cleanings || []
+      setCleanings(availableCleanings)
     } catch (err) {
       console.error('Failed to fetch cleanings:', err.response?.data || err.message)
     } finally {
@@ -42,6 +39,11 @@ export default function CleanerPage() {
 
   const wasteTypes = ['plastic', 'organic', 'mixed', 'toxic']
   if (userType === 'ngo') wasteTypes.push('sewage')
+
+    const handleCleanClick = (reportId) => {
+      console.log('🔧 Clean button clicked, navigating to report:', reportId)
+      navigate(`/cleaning/${reportId}`)
+    }
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors ${
@@ -118,7 +120,9 @@ export default function CleanerPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {cleanings.map(cleaning => (
+            {cleanings
+              .filter(c => !!c.imageUrl) // extra guard against empty images
+              .map(cleaning => (
               <div
                 key={cleaning.id}
                 className={`rounded-lg overflow-hidden transition transform hover:scale-105 border ${
@@ -129,6 +133,11 @@ export default function CleanerPage() {
                   src={cleaning.imageUrl}
                   alt="Garbage area"
                   className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    // Hide cards with broken images
+                    e.currentTarget.onerror = null
+                    e.currentTarget.closest('div').style.display = 'none'
+                  }}
                 />
                 <div className="p-4">
                   <div className="flex justify-between items-start mb-2">
@@ -138,7 +147,14 @@ export default function CleanerPage() {
                       }`}>{cleaning.wasteType}</p>
                       <p className={`text-sm ${
                         darkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>📍 {cleaning.distance}m away</p>
+                      }`}>
+                        {(() => {
+                          const km = Number(cleaning.distanceKm ?? cleaning.distance ?? 0)
+                          if (!isFinite(km)) return '📍 distance unavailable'
+                          if (km >= 1) return `📍 ${km.toFixed(2)} km away`
+                          return `📍 ${Math.max(1, Math.round(km * 1000))} m away`
+                        })()}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className={`font-bold ${
@@ -148,7 +164,7 @@ export default function CleanerPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <button
-                      onClick={() => navigate(`/cleaning/${cleaning.id}`)}
+                        onClick={() => handleCleanClick(cleaning.id)}
                       className={`py-2 text-white font-semibold rounded-lg text-sm ${
                         darkMode ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-green-600 hover:bg-green-700'
                       }`}

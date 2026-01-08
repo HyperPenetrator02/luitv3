@@ -34,85 +34,31 @@ async def get_all_cleanings():
 
 @router.get("/users")
 async def get_all_users():
-    """Get all users from Firebase Authentication"""
+    """Get all individual users from Firestore with activity counts.
+    Admin UI relies on Firestore as the source of truth so delete operations
+    reflect immediately and login remains consistent.
+    """
     try:
         users_list = []
-        
-        try:
-            # Get all users from Firebase Auth
-            page = auth.list_users()
-            
-            while page:
-                for user in page.users:
-                    # Get activity counts from Firestore
-                    reports_count = 0
-                    cleanings_count = 0
-                    
-                    # Count reports
-                    reports = db.collection('reports').where('userId', '==', user.uid).stream()
-                    for _ in reports:
-                        reports_count += 1
-                    
-                    # Count cleanings
-                    cleanings = db.collection('cleanings').where('userId', '==', user.uid).stream()
-                    for _ in cleanings:
-                        cleanings_count += 1
-                    
-                    users_list.append({
-                        'id': user.uid,
-                        'name': user.display_name or user.email or 'Unknown',
-                        'email': user.email or '',
-                        'userType': 'individual',
-                        'reportsCount': reports_count,
-                        'cleaningsCount': cleanings_count,
-                        'createdAt': str(user.user_metadata.creation_timestamp) if user.user_metadata else ''
-                    })
-                
-                # Get next page if exists
-                page = page.get_next_page()
-        except Exception as auth_error:
-            print(f"Auth error: {str(auth_error)}")
-            # Fallback: extract users from Firestore if Auth fails
-            users_dict = {}
-            
-            for doc in db.collection('reports').stream():
-                report_data = doc.to_dict()
-                user_id = report_data.get('userId')
-                user_email = report_data.get('userEmail', '')
-                user_name = report_data.get('userName', 'Unknown')
-                
-                if user_id and user_id not in users_dict:
-                    users_dict[user_id] = {
-                        'id': user_id,
-                        'name': user_name,
-                        'email': user_email,
-                        'userType': 'individual',
-                        'reportsCount': 0,
-                        'cleaningsCount': 0
-                    }
-                if user_id:
-                    users_dict[user_id]['reportsCount'] += 1
-            
-            for doc in db.collection('cleanings').stream():
-                cleaning_data = doc.to_dict()
-                user_id = cleaning_data.get('userId')
-                user_email = cleaning_data.get('userEmail', '')
-                user_name = cleaning_data.get('userName', 'Unknown')
-                
-                if user_id and user_id not in users_dict:
-                    users_dict[user_id] = {
-                        'id': user_id,
-                        'name': user_name,
-                        'email': user_email,
-                        'userType': 'individual',
-                        'reportsCount': 0,
-                        'cleaningsCount': 0
-                    }
-                if user_id:
-                    users_dict[user_id]['cleaningsCount'] += 1
-            
-            users_list = list(users_dict.values())
-        
+
+        # Read canonical profiles from Firestore
+        users_ref = db.collection('users').where('userType', '==', 'individual')
+        for doc in users_ref.stream():
+            user = doc.to_dict() or {}
+            uid = doc.id
+            # Count activity
+            reports_count = sum(1 for _ in db.collection('reports').where('userId', '==', uid).stream())
+            cleanings_count = sum(1 for _ in db.collection('cleanings').where('userId', '==', uid).stream())
+            users_list.append({
+                'id': uid,
+                'name': user.get('name') or user.get('email', 'Unknown'),
+                'email': user.get('email', ''),
+                'userType': 'individual',
+                'reportsCount': reports_count,
+                'cleaningsCount': cleanings_count,
+                'createdAt': str(user.get('createdAt'))
+            })
+
         return users_list
     except Exception as e:
         print(f"Error fetching users: {str(e)}")
@@ -120,64 +66,51 @@ async def get_all_users():
 
 @router.get("/ngos")
 async def get_all_ngos():
-    """Get all unique NGOs from reports and cleanings"""
+    """Get all NGOs from Firestore with activity counts."""
     try:
-        ngos_dict = {}
-        
-        # Get NGOs from reports (where userType is ngo)
-        reports_ref = db.collection('reports')
-        for doc in reports_ref.stream():
-            report_data = doc.to_dict()
-            if report_data.get('userType') == 'ngo':
-                user_id = report_data.get('userId')
-                user_name = report_data.get('userName', 'Unknown NGO')
-                
-                if user_id and user_id not in ngos_dict:
-                    ngos_dict[user_id] = {
-                        'id': user_id,
-                        'name': user_name,
-                        'userType': 'ngo',
-                        'reportsCount': 0,
-                        'cleaningsCount': 0,
-                        'email': report_data.get('userEmail', '')
-                    }
-                if user_id:
-                    ngos_dict[user_id]['reportsCount'] += 1
-        
-        # Get NGOs from cleanings
-        cleanings_ref = db.collection('cleanings')
-        for doc in cleanings_ref.stream():
-            cleaning_data = doc.to_dict()
-            if cleaning_data.get('userType') == 'ngo':
-                user_id = cleaning_data.get('userId')
-                user_name = cleaning_data.get('userName', 'Unknown NGO')
-                
-                if user_id and user_id not in ngos_dict:
-                    ngos_dict[user_id] = {
-                        'id': user_id,
-                        'name': user_name,
-                        'userType': 'ngo',
-                        'reportsCount': 0,
-                        'cleaningsCount': 0,
-                        'email': cleaning_data.get('userEmail', '')
-                    }
-                if user_id:
-                    ngos_dict[user_id]['cleaningsCount'] += 1
-        
-        return list(ngos_dict.values())
+        ngos_list = []
+
+        ngos_ref = db.collection('users').where('userType', '==', 'ngo')
+        for doc in ngos_ref.stream():
+            ngo = doc.to_dict() or {}
+            uid = doc.id
+            reports_count = sum(1 for _ in db.collection('reports').where('userId', '==', uid).stream())
+            cleanings_count = sum(1 for _ in db.collection('cleanings').where('userId', '==', uid).stream())
+            ngos_list.append({
+                'id': uid,
+                'name': ngo.get('ngoName') or ngo.get('name') or 'Unknown NGO',
+                'email': ngo.get('email', ''),
+                'userType': 'ngo',
+                'reportsCount': reports_count,
+                'cleaningsCount': cleanings_count,
+                'createdAt': str(ngo.get('createdAt'))
+            })
+
+        return ngos_list
     except Exception as e:
         print(f"Error fetching NGOs: {str(e)}")
         return []
 
 @router.delete("/clear/reports")
 async def clear_all_reports():
-    """Delete all reports from database"""
+    """Delete all reports from database and their images from Cloudinary"""
     try:
+        from services.cloudinary_service import delete_image_from_cloudinary
         reports_ref = db.collection('reports')
         batch = db.batch()
         count = 0
         
         for doc in reports_ref.stream():
+            report_data = doc.to_dict()
+            public_id = report_data.get('public_id')
+            
+            # Delete image from Cloudinary if public_id exists
+            if public_id:
+                try:
+                    await delete_image_from_cloudinary(public_id)
+                except Exception as img_err:
+                    print(f"⚠️  Could not delete image {public_id}: {str(img_err)}")
+            
             batch.delete(doc.reference)
             count += 1
             
@@ -187,7 +120,7 @@ async def clear_all_reports():
                 batch = db.batch()
         
         batch.commit()
-        return {"message": f"Cleared {count} reports"}
+        return {"message": f"Cleared {count} reports and their images"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -252,8 +185,10 @@ async def clear_all_cleanings():
 
 @router.delete("/clear/users")
 async def clear_all_users():
-    """Delete all user documents from Firestore and related user data"""
+    """Delete all user documents from Firestore and related user data and images"""
     try:
+        from services.cloudinary_service import delete_image_from_cloudinary
+        
         # 1) Delete all documents in 'users' collection
         users_ref = db.collection('users')
         users_batch = db.batch()
@@ -268,7 +203,7 @@ async def clear_all_users():
 
         users_batch.commit()
 
-        # 2) Delete all non-NGO reports
+        # 2) Delete all non-NGO reports and their images
         reports_ref = db.collection('reports')
         reports_batch = db.batch()
         reports_count = 0
@@ -276,6 +211,13 @@ async def clear_all_users():
         for doc in reports_ref.stream():
             report_data = doc.to_dict()
             if report_data.get('userType') != 'ngo':
+                public_id = report_data.get('public_id')
+                if public_id:
+                    try:
+                        await delete_image_from_cloudinary(public_id)
+                    except Exception as img_err:
+                        print(f"⚠️  Could not delete image {public_id}: {str(img_err)}")
+                
                 reports_batch.delete(doc.reference)
                 reports_count += 1
                 if reports_count % 500 == 0:
@@ -303,7 +245,7 @@ async def clear_all_users():
         return {
             "message": (
                 f"Cleared {users_count} user profiles, "
-                f"{reports_count} reports, {cleanings_count} cleanings"
+                f"{reports_count} reports with images, {cleanings_count} cleanings"
             )
         }
     except Exception as e:
@@ -311,17 +253,26 @@ async def clear_all_users():
 
 @router.delete("/clear/ngos")
 async def clear_all_ngos():
-    """Delete all NGO data from reports and cleanings"""
+    """Delete all NGO data from reports and cleanings, and their images"""
     try:
+        from services.cloudinary_service import delete_image_from_cloudinary
+        
         count = 0
         
-        # Delete all NGO reports
+        # Delete all NGO reports and their images
         reports_ref = db.collection('reports')
         batch = db.batch()
         
         for doc in reports_ref.stream():
             report_data = doc.to_dict()
             if report_data.get('userType') == 'ngo':
+                public_id = report_data.get('public_id')
+                if public_id:
+                    try:
+                        await delete_image_from_cloudinary(public_id)
+                    except Exception as img_err:
+                        print(f"⚠️  Could not delete image {public_id}: {str(img_err)}")
+                
                 batch.delete(doc.reference)
                 count += 1
                 
@@ -348,16 +299,34 @@ async def clear_all_ngos():
         
         cleaning_batch.commit()
         
-        return {"message": f"Cleared {count} NGO records and {cleaning_count} cleanings"}
+        return {"message": f"Cleared {count} NGO records with images and {cleaning_count} cleanings"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 # Individual deletion endpoints
 @router.delete("/delete/report/{report_id}")
 async def delete_report(report_id: str):
-    """Delete a single report by ID"""
+    """Delete a single report by ID and its associated image from Cloudinary"""
     try:
+        # Get report data to retrieve public_id before deletion
+        report_doc = db.collection('reports').document(report_id).get()
+        if report_doc.exists:
+            report_data = report_doc.to_dict()
+            public_id = report_data.get('public_id')
+            
+            # Delete image from Cloudinary if public_id exists
+            if public_id:
+                try:
+                    from services.cloudinary_service import delete_image_from_cloudinary
+                    print(f"🗑️  Deleting image with public_id: {public_id}")
+                    await delete_image_from_cloudinary(public_id)
+                    print(f"✅ Image deleted successfully")
+                except Exception as img_err:
+                    print(f"⚠️  Could not delete image: {str(img_err)}")
+                    # Continue with report deletion even if image delete fails
+        
+        # Delete the report from Firestore
         db.collection('reports').document(report_id).delete()
-        return {"message": f"Deleted report {report_id}"}
+        return {"message": f"Deleted report {report_id} and associated image"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -397,7 +366,12 @@ async def delete_user(user_id: str):
         
         # Delete user profile if exists
         db.collection('users').document(user_id).delete()
-        
+        # Attempt to delete auth user as well so Admin table stays consistent
+        try:
+            auth.delete_user(user_id)
+        except Exception as _:
+            pass
+
         batch.commit()
         
         return {"message": f"Deleted user {user_id} and {count} associated records"}
@@ -429,6 +403,13 @@ async def delete_ngo(ngo_id: str):
                 batch.commit()
                 batch = db.batch()
         
+        # Delete NGO profile and auth account
+        db.collection('users').document(ngo_id).delete()
+        try:
+            auth.delete_user(ngo_id)
+        except Exception as _:
+            pass
+
         batch.commit()
         
         return {"message": f"Deleted NGO {ngo_id} and {count} associated records"}

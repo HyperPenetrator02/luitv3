@@ -73,23 +73,48 @@ export default function CleaningPage() {
       )
       setDistance(dist)
       
-      const withinRange = dist <= 50
+      const withinRange = dist <= 150
       setIsWithinRange(withinRange)
       
       console.log(`📍 Distance to cleanup: ${dist.toFixed(1)}m - ${withinRange ? '✅ In range' : '❌ Out of range'}`)
       
       if (!withinRange) {
-        setError(`⚠️ You are ${dist.toFixed(0)}m away. Get closer to the location (within 50m) to start cleaning.`)
+        setError(`⚠️ You are ${dist.toFixed(0)}m away. Get closer to the location (within 150m) to start cleaning.`)
       }
     }
   }, [report, latitude, longitude])
 
   const fetchReport = async () => {
     try {
+      console.log(`📡 Fetching report: ${reportId}`)
       const response = await reportingApi.getReport(reportId)
-      const reportData = response.data.report || response.data
+      console.log(`📦 Full API Response:`, response)
+      console.log(`📦 response.data:`, response.data)
+      
+      // Backend returns { success: true, report: {...} }
+      const reportData = response.data?.report
+      console.log(`📋 Report data:`, reportData)
+      
+      // Check if report exists and has required data; if not, navigate back silently
+      if (!reportData || !reportData.id) {
+        console.warn(`⚠️ Report ${reportId} not found or missing ID, redirecting to cleaner`)
+        console.warn(`reportData:`, reportData)
+        setReport(null)
+        navigate('/cleaner')
+        return
+      }
+      
       setReport(reportData)
       setBeforeImage(reportData.imageUrl)
+      
+      // Check if image URL is valid; if not, navigate back silently
+      if (!reportData.imageUrl) {
+        console.warn(`⚠️ Report ${reportId} missing imageUrl, redirecting to cleaner`)
+        navigate('/cleaner')
+        return
+      }
+      
+      console.log(`✅ Report loaded successfully`)
       
       // Convert image URL to base64
       try {
@@ -116,7 +141,9 @@ export default function CleaningPage() {
       }
     } catch (err) {
       console.error('Failed to load report:', err)
-      setError('Could not load cleanup task')
+      // On any failure, navigate back to cleaner list without showing errors
+      setReport(null)
+      navigate('/cleaner')
     }
   }
 
@@ -148,9 +175,9 @@ export default function CleaningPage() {
     try {
       setError('')
       
-      // Check if within 50m range
+      // Check if within 150m range
       if (!isWithinRange) {
-        setError(`❌ You must be within 50m of the cleanup location. Currently ${distance?.toFixed(0)}m away. Please move closer to proceed.`)
+        setError(`❌ You must be within 150m of the cleanup location. Currently ${distance?.toFixed(0)}m away. Please move closer to proceed.`)
         setCameraStarted(false)
         return
       }
@@ -429,7 +456,7 @@ export default function CleaningPage() {
                   }`}>
                     {isWithinRange 
                       ? `✅ You are within range to start cleaning (${distance.toFixed(1)}m away)`
-                      : `⚠️ You must get closer to the cleanup location. Currently ${distance.toFixed(0)}m away - need to be within 50m`
+                      : `⚠️ You must get closer to the cleanup location. Currently ${distance.toFixed(0)}m away - need to be within 150m`
                     }
                   </p>
                   {!isWithinRange && (

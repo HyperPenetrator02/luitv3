@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // Use environment variable or default to Railway production URL
-const API_BASE = process.env.NODE_ENV === 'production' 
+const API_BASE = process.env.NODE_ENV === 'production'
   ? 'https://web-production-1a99b.up.railway.app'
   : 'http://localhost:5000'
 
@@ -41,6 +41,9 @@ api.interceptors.response.use(
   }
 )
 
+// Environment detection
+export const getEnv = () => api.get('/env')
+
 // Auth endpoints
 export const authApi = {
   register: (data) => api.post('/auth/register', data),
@@ -55,8 +58,8 @@ export const reportingApi = {
   deleteImage: (public_id) => api.post('/reporting/delete-image', { public_id }),
   checkLocation: (latitude, longitude) => api.post('/reporting/check-location', { latitude, longitude }),
   createReport: (data) => api.post('/reporting/report', data),
-  getReports: (wasteType, limit) => api.get('/reporting/reports', { 
-    params: { wasteType, limit } 
+  getReports: (wasteType, limit) => api.get('/reporting/reports', {
+    params: { wasteType, limit }
   }),
   getReport: (reportId) => api.get(`/reporting/reports/${reportId}`)
 }
@@ -75,18 +78,19 @@ export const analyticsApi = {
   getUserAnalytics: (userId) => api.get(`/analytics/user/${userId}`),
   getNgoAnalytics: (ngoId) => api.get(`/analytics/ngo/${ngoId}`),
   getGlobalAnalytics: () => api.get('/analytics/global'),
-  getUsersLeaderboard: (category = 'overall', limit = 20) => 
+  getTimeBuckets: () => api.get('/analytics/time-buckets'),
+  getUsersLeaderboard: (category = 'overall', limit = 20) =>
     api.get('/analytics/leaderboard/users', { params: { category, limit } }),
-  getNgosLeaderboard: (category = 'overall', limit = 20) => 
+  getNgosLeaderboard: (category = 'overall', limit = 20) =>
     api.get('/analytics/leaderboard/ngos', { params: { category, limit } })
 }
 
 // Location endpoints
 export const locationApi = {
-  getNearbyReports: (latitude, longitude, radius = 100) => 
+  getNearbyReports: (latitude, longitude, radius = 100) =>
     api.get('/location/nearby-reports', { params: { latitude, longitude, radius } }),
-  validateCoordinates: (latitude, longitude) => 
+  validateCoordinates: (latitude, longitude) =>
     api.get('/location/validate-coordinates', { params: { latitude, longitude } }),
-  checkDuplicateLocation: (latitude, longitude, radius = 100) => 
+  checkDuplicateLocation: (latitude, longitude, radius = 100) =>
     api.post('/location/check-duplicate', { latitude, longitude, radius })
 }
