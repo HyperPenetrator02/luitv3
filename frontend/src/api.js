@@ -1,7 +1,12 @@
 import axios from 'axios'
 
 // Use environment variable or default to localhost
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+let API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
+// Auto-fix for production: Force HTTPS if it's a railway or production domain
+if (API_BASE.includes('railway.app') && !API_BASE.startsWith('https://')) {
+  API_BASE = API_BASE.replace('http://', 'https://');
+}
 
 export const api = axios.create({
   baseURL: API_BASE,

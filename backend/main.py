@@ -22,34 +22,35 @@ except Exception as e:
     # Proceeding allows health endpoint to work; Firestore routes will raise until fixed
 
 # CORS Configuration - Allow specific origins
-env_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 allowed_origins = [
     "https://luit.vercel.app",
     "https://luitv3.vercel.app",
     "http://localhost:5173",
     "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000"
 ]
-# Add origins from environment variables if present
-if env_origins:
-    allowed_origins.extend([o.strip() for o in env_origins if o.strip()])
 
-# Specifically allow the user's current Vercel deployments
-allowed_origins.extend([
-    "https://luitv3-mnmo3t0jx-hyperpens-projects.vercel.app",
-    "https://luitv3-jqrq1q3sb-hyperpens-projects.vercel.app"
-])
+# Middleware to log ALL incoming requests for debugging 405 errors
+@app.middleware("http")
+async def log_requests(request, call_next):
+    method = request.method
+    path = request.url.path
+    logger.info(f"📥 🔍 [SERVER-LOG] {method} request to {path}")
+    response = await call_next(request)
+    logger.info(f"📤 🔍 [SERVER-LOG] Response: {response.status_code} for {path}")
+    return response
 
 app.add_middleware(
     CORSMiddleware,
+    # In development, allow everything. In production, use the whitelist.
     allow_origins=["*"] if os.getenv("BACKEND_ENV") != "production" else allowed_origins,
-    allow_credentials=True if os.getenv("BACKEND_ENV") == "production" else False,
+    # allow_origin_regex is more robust for Vercel preview deployments
+    allow_origin_regex=r"https://luitv3-.*-hyperpens-projects\.vercel\.app" if os.getenv("BACKEND_ENV") == "production" else None,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-logger.info(f"✅ CORS enabled for origins: {allowed_origins}")
+logger.info(f"✅ CORS enabled with dynamic regex for Vercel deployments")
 
 @app.get("/health")
 def health_check():
