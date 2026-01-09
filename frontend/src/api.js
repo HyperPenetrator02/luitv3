@@ -3,8 +3,17 @@ import axios from 'axios'
 // Use environment variable or default to localhost
 let API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
-// Auto-fix for production: Force HTTPS if it's a railway or production domain
-if (API_BASE.includes('railway.app') && !API_BASE.startsWith('https://')) {
+// Clean trailing slashes
+API_BASE = API_BASE.trim().replace(/\/$/, '');
+
+// 🚨 CRITICAL FIX: If the URL doesn't start with http, Axios treats it as a RELATIVE path.
+// This causes 405 errors because it tries to hit the frontend server instead of the backend.
+if (API_BASE && !API_BASE.startsWith('http')) {
+  API_BASE = 'https://' + API_BASE;
+}
+
+// Force HTTPS for production railway domains
+if (API_BASE.includes('railway.app')) {
   API_BASE = API_BASE.replace('http://', 'https://');
 }
 
