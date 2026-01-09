@@ -19,7 +19,13 @@ function App() {
   const userType = useAuthStore((state) => state.userType)
   const hydrated = useAuthStore((state) => state.hydrated)
 
-  if (!hydrated) return null
+  if (!hydrated) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0f9ff' }}>
+        <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb' }}>Loading LUIT v3...</p>
+      </div>
+    )
+  }
 
   return (
     <Router>
@@ -29,19 +35,17 @@ function App() {
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginRegister />} />
         <Route path="/report" element={<ReportingPage />} />
 
-        {/* Protected User Routes */}
-        {user && userType === 'individual' && (
-          <>
-            <Route path="/dashboard" element={<UserDashboard />} />
-            <Route path="/cleaner" element={<CleanerPage />} />
-            <Route path="/cleaning/:reportId" element={<CleaningPage />} />
-          </>
-        )}
+        {/* Protected Dashboard Route */}
+        <Route path="/dashboard" element={
+          !user ? <Navigate to="/login" /> :
+            userType === 'individual' ? <UserDashboard /> :
+              userType === 'ngo' ? <NgoDashboard /> :
+                <Navigate to="/" />
+        } />
 
-        {/* Protected NGO Routes */}
-        {user && userType === 'ngo' && (
+        {/* Other Protected User Routes */}
+        {user && (
           <>
-            <Route path="/dashboard" element={<NgoDashboard />} />
             <Route path="/cleaner" element={<CleanerPage />} />
             <Route path="/cleaning/:reportId" element={<CleaningPage />} />
           </>

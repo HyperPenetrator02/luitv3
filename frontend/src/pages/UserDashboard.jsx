@@ -8,8 +8,12 @@ export default function UserDashboard() {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode')
-    return saved ? JSON.parse(saved) : false
+    try {
+      const saved = localStorage.getItem('darkMode')
+      return saved ? JSON.parse(saved) : false
+    } catch (e) {
+      return false
+    }
   })
   const [analytics, setAnalytics] = useState({
     reportsCount: 0,
@@ -54,6 +58,7 @@ export default function UserDashboard() {
 
   const fetchUserAnalytics = async () => {
     try {
+      if (!user?.id) return
       const response = await analyticsApi.getUserAnalytics(user.id)
       setAnalytics(response.data)
 

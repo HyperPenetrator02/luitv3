@@ -23,8 +23,13 @@ export const useAuthStore = create(
       version: 1,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ user: state.user, userType: state.userType, token: state.token }),
-      onRehydrateStorage: () => (state, error) => {
-        state?.setHydrated()
+      onRehydrateStorage: (state) => {
+        return (rehydratedState, error) => {
+          if (error) {
+            console.error('Hydration error:', error)
+          }
+          useAuthStore.setState({ hydrated: true })
+        }
       }
     }
   )

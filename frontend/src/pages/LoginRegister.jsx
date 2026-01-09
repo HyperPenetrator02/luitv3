@@ -7,14 +7,18 @@ export default function LoginRegister() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
   const setUserType = useAuthStore((state) => state.setUserType)
-  
+
   const [isLogin, setIsLogin] = useState(true)
   const [userType, setUserTypeLocal] = useState('individual')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode')
-    return saved ? JSON.parse(saved) : false
+    try {
+      const saved = localStorage.getItem('darkMode')
+      return saved ? JSON.parse(saved) : false
+    } catch (e) {
+      return false
+    }
   })
 
   const [formData, setFormData] = useState({
@@ -80,16 +84,14 @@ export default function LoginRegister() {
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center px-4 py-8 transition-colors ${
-      darkMode 
-        ? 'bg-gradient-to-b from-slate-900 to-cyan-900' 
+    <div className={`min-h-screen flex items-center justify-center px-4 py-8 transition-colors ${darkMode
+        ? 'bg-gradient-to-b from-slate-900 to-cyan-900'
         : 'bg-gradient-to-b from-blue-50 to-green-50'
-    }`}>
-      <div className={`w-full max-w-sm rounded-lg shadow-lg p-6 border ${
-        darkMode 
-          ? 'bg-slate-800 border-cyan-700' 
-          : 'bg-white border-cyan-200'
       }`}>
+      <div className={`w-full max-w-sm rounded-lg shadow-lg p-6 border ${darkMode
+          ? 'bg-slate-800 border-cyan-700'
+          : 'bg-white border-cyan-200'
+        }`}>
         {/* Header with dark mode toggle */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
@@ -98,11 +100,10 @@ export default function LoginRegister() {
           </div>
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className={`px-2 py-1 rounded-md text-sm transition transform hover:scale-110 ${
-              darkMode 
-                ? 'bg-slate-700 text-yellow-300 hover:bg-slate-600' 
+            className={`px-2 py-1 rounded-md text-sm transition transform hover:scale-110 ${darkMode
+                ? 'bg-slate-700 text-yellow-300 hover:bg-slate-600'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+              }`}
           >
             {darkMode ? '☀️' : '🌙'}
           </button>
@@ -113,21 +114,19 @@ export default function LoginRegister() {
           <div className={`flex gap-2 mb-6 p-1 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-gray-100'}`}>
             <button
               onClick={() => { setIsLogin(true); setError('') }}
-              className={`flex-1 py-2 rounded-md font-semibold transition ${
-                isLogin 
+              className={`flex-1 py-2 rounded-md font-semibold transition ${isLogin
                   ? darkMode ? 'bg-cyan-600 text-white' : 'bg-blue-600 text-white'
                   : darkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}
+                }`}
             >
               Login
             </button>
             <button
               onClick={() => { setIsLogin(false); setError('') }}
-              className={`flex-1 py-2 rounded-md font-semibold transition ${
-                !isLogin 
+              className={`flex-1 py-2 rounded-md font-semibold transition ${!isLogin
                   ? darkMode ? 'bg-cyan-600 text-white' : 'bg-blue-600 text-white'
                   : darkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}
+                }`}
             >
               Register
             </button>
@@ -138,29 +137,26 @@ export default function LoginRegister() {
         <div className={`grid grid-cols-3 gap-2 mb-6 p-1 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-gray-100'}`}>
           <button
             onClick={() => setUserTypeLocal('individual')}
-            className={`py-2 text-sm rounded-md font-semibold transition ${
-              userType === 'individual' 
+            className={`py-2 text-sm rounded-md font-semibold transition ${userType === 'individual'
                 ? darkMode ? 'bg-emerald-600 text-white' : 'bg-green-600 text-white'
                 : darkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}
+              }`}
           >
             Individual
           </button>
           <button
             onClick={() => setUserTypeLocal('ngo')}
-            className={`py-2 text-sm rounded-md font-semibold transition ${
-              userType === 'ngo' 
+            className={`py-2 text-sm rounded-md font-semibold transition ${userType === 'ngo'
                 ? darkMode ? 'bg-emerald-600 text-white' : 'bg-green-600 text-white'
                 : darkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}
+              }`}
           >
             NGO
           </button>
           <button
             onClick={() => setUserTypeLocal('admin')}
-            className={`py-2 text-sm rounded-md font-semibold transition ${
-              userType === 'admin' ? 'bg-red-600 text-white' : darkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}
+            className={`py-2 text-sm rounded-md font-semibold transition ${userType === 'admin' ? 'bg-red-600 text-white' : darkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}
           >
             Admin
           </button>
@@ -168,11 +164,10 @@ export default function LoginRegister() {
 
         {/* Error Message */}
         {error && (
-          <div className={`mb-4 p-3 rounded-lg text-sm ${
-            error.includes('successful') 
+          <div className={`mb-4 p-3 rounded-lg text-sm ${error.includes('successful')
               ? darkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-700'
               : darkMode ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-700'
-          }`}>
+            }`}>
             {error}
           </div>
         )}
@@ -188,9 +183,8 @@ export default function LoginRegister() {
               value={formData.password}
               onChange={handleChange}
               required
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 ${
-                darkMode ? 'bg-slate-700 border-cyan-700 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 ${darkMode ? 'bg-slate-700 border-cyan-700 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900'
+                }`}
             />
           ) : (
             <>
@@ -202,11 +196,10 @@ export default function LoginRegister() {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    darkMode 
-                      ? 'bg-slate-700 border-cyan-700 text-white placeholder-gray-400 focus:ring-cyan-600' 
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${darkMode
+                      ? 'bg-slate-700 border-cyan-700 text-white placeholder-gray-400 focus:ring-cyan-600'
                       : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-600'
-                  }`}
+                    }`}
                 />
               )}
 
@@ -218,11 +211,10 @@ export default function LoginRegister() {
                   value={formData.ngoName}
                   onChange={handleChange}
                   required
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    darkMode 
-                      ? 'bg-slate-700 border-cyan-700 text-white placeholder-gray-400 focus:ring-cyan-600' 
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${darkMode
+                      ? 'bg-slate-700 border-cyan-700 text-white placeholder-gray-400 focus:ring-cyan-600'
                       : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-600'
-                  }`}
+                    }`}
                 />
               )}
 
@@ -234,11 +226,10 @@ export default function LoginRegister() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                  darkMode 
-                    ? 'bg-slate-700 border-cyan-700 text-white placeholder-gray-400 focus:ring-cyan-600' 
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${darkMode
+                    ? 'bg-slate-700 border-cyan-700 text-white placeholder-gray-400 focus:ring-cyan-600'
                     : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-600'
-                }`}
+                  }`}
               />
 
               <input
@@ -248,11 +239,10 @@ export default function LoginRegister() {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                  darkMode 
-                    ? 'bg-slate-700 border-cyan-700 text-white placeholder-gray-400 focus:ring-cyan-600' 
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${darkMode
+                    ? 'bg-slate-700 border-cyan-700 text-white placeholder-gray-400 focus:ring-cyan-600'
                     : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-600'
-                }`}
+                  }`}
               />
             </>
           )}
@@ -260,13 +250,12 @@ export default function LoginRegister() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 text-white font-bold rounded-lg transition ${
-              userType === 'admin' 
-                ? 'bg-red-600 hover:bg-red-700' 
-                : darkMode 
-                  ? 'bg-cyan-600 hover:bg-cyan-700' 
+            className={`w-full py-3 text-white font-bold rounded-lg transition ${userType === 'admin'
+                ? 'bg-red-600 hover:bg-red-700'
+                : darkMode
+                  ? 'bg-cyan-600 hover:bg-cyan-700'
                   : 'bg-blue-600 hover:bg-blue-700'
-            } disabled:bg-gray-400`}
+              } disabled:bg-gray-400`}
           >
             {loading ? 'Processing...' : userType === 'admin' ? 'Access Admin Panel' : isLogin ? 'Login' : 'Register'}
           </button>
@@ -275,23 +264,19 @@ export default function LoginRegister() {
         {/* Back to main */}
         <button
           onClick={() => navigate('/')}
-          className={`w-full mt-4 py-2 text-sm transition ${
-            darkMode ? 'text-gray-400 hover:text-cyan-300' : 'text-gray-600 hover:text-blue-600'
-          }`}
+          className={`w-full mt-4 py-2 text-sm transition ${darkMode ? 'text-gray-400 hover:text-cyan-300' : 'text-gray-600 hover:text-blue-600'
+            }`}
         >
           Back to Home
         </button>
 
         {/* Footer */}
-        <div className={`mt-6 pt-4 border-t text-center ${
-          darkMode ? 'border-slate-700' : 'border-gray-200'
-        }`}>
-          <p className={`text-xs ${
-            darkMode ? 'text-gray-400' : 'text-gray-600'
+        <div className={`mt-6 pt-4 border-t text-center ${darkMode ? 'border-slate-700' : 'border-gray-200'
           }`}>
-            Made with 💙 by <span className={`font-bold ${
-              darkMode ? 'text-cyan-400' : 'text-blue-600'
-            }`}>LuitLabs</span>
+          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+            Made with 💙 by <span className={`font-bold ${darkMode ? 'text-cyan-400' : 'text-blue-600'
+              }`}>LuitLabs</span>
           </p>
         </div>
       </div>

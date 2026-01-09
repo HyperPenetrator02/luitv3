@@ -7,8 +7,12 @@ export default function MainPage() {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode')
-    return saved ? JSON.parse(saved) : false
+    try {
+      const saved = localStorage.getItem('darkMode')
+      return saved ? JSON.parse(saved) : false
+    } catch (e) {
+      return false
+    }
   })
   const [analytics, setAnalytics] = useState({
     totalReports: 0,
@@ -149,7 +153,7 @@ export default function MainPage() {
       </header>
 
       {/* Main Content */}
-      <main className={`flex-1 max-w-7xl mx-auto px-4 py-8 w-full ${showContent ? 'animate-fadeIn' : 'opacity-0'}`}>
+      <main className={`flex-1 max-w-7xl mx-auto px-4 py-8 w-full ${showContent ? 'animate-fadeIn' : ''}`}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
 
           <div className="space-y-8">
