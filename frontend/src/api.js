@@ -3,6 +3,14 @@ import axios from 'axios'
 // Use environment variable or default to localhost
 let API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').trim();
 
+// 🛠️ REAL-TIME DEBUGGING: Allow overriding API via URL param (?api=https://...)
+const urlParams = new URLSearchParams(window.location.search);
+const overrideApi = urlParams.get('api');
+if (overrideApi) {
+  console.log('🛠️ OVERRIDING API URL:', overrideApi);
+  API_BASE = overrideApi.trim();
+}
+
 // 🚨 REMOVE ALL TRAILING SLASHES AND HIDDEN WHITESPACE
 API_BASE = API_BASE.replace(/\/+$/, '');
 
