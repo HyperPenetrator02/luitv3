@@ -1,33 +1,38 @@
 import axios from 'axios'
 
-// Use environment variable or default to localhost
-let API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').trim();
+// 🎯 PRIORITY 1: Check localStorage for user-configured URL
+const customApiUrl = localStorage.getItem('CUSTOM_API_URL');
+let API_BASE = customApiUrl || (import.meta.env.VITE_API_URL || 'http://localhost:5000');
+API_BASE = API_BASE.trim();
 
-// 🛠️ REAL-TIME DEBUGGING: Allow overriding API via URL param (?api=https://...)
+console.log('🔗 API Configuration:', {
+  custom: customApiUrl,
+  env: import.meta.env.VITE_API_URL,
+  final: API_BASE
+});
+
+// 🎯 PRIORITY 2: URL param override (?api=https://...)
 const urlParams = new URLSearchParams(window.location.search);
 const overrideApi = urlParams.get('api');
 if (overrideApi) {
-  console.log('🛠️ OVERRIDING API URL:', overrideApi);
+  console.log('🛠️ URL PARAM OVERRIDE:', overrideApi);
   API_BASE = overrideApi.trim();
 }
 
-// 🚨 REMOVE ALL TRAILING SLASHES AND HIDDEN WHITESPACE
+// Clean up URL
 API_BASE = API_BASE.replace(/\/+$/, '');
 
-// 🚨 FORCE HTTPS FOR PRODUCTION RAILWAY DOMAINS
-if (API_BASE.includes('railway.app')) {
-  if (API_BASE.startsWith('http:')) {
-    API_BASE = API_BASE.replace('http:', 'https:');
-  } else if (!API_BASE.startsWith('https:')) {
-    API_BASE = 'https://' + API_BASE;
-  }
+// Force HTTPS for Railway
+if (API_BASE.includes('railway.app') && API_BASE.startsWith('http:')) {
+  API_BASE = API_BASE.replace('http:', 'https:');
 }
 
-// Ensure the URL is valid
+// Validate
 try {
   new URL(API_BASE);
+  console.log('✅ API BASE URL:', API_BASE);
 } catch (e) {
-  console.error('❌ INVALID API URL CONFIGURED:', API_BASE);
+  console.error('❌ INVALID API URL:', API_BASE);
 }
 
 export const api = axios.create({
