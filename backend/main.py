@@ -22,25 +22,34 @@ except Exception as e:
     # Proceeding allows health endpoint to work; Firestore routes will raise until fixed
 
 # CORS Configuration - Allow specific origins
+env_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 allowed_origins = [
     "https://luit.vercel.app",
+    "https://luitv3.vercel.app",
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000"
 ]
+# Add origins from environment variables if present
+if env_origins:
+    allowed_origins.extend([o.strip() for o in env_origins if o.strip()])
+
+# Specifically allow the user's current Vercel deployments
+allowed_origins.extend([
+    "https://luitv3-mnmo3t0jx-hyperpens-projects.vercel.app",
+    "https://luitv3-jqrq1q3sb-hyperpens-projects.vercel.app"
+])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_origins=["*"] if os.getenv("BACKEND_ENV") != "production" else allowed_origins,
+    allow_credentials=True if os.getenv("BACKEND_ENV") == "production" else False,
+    allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=600,
 )
 
-logger.info("✅ CORS enabled for origins: " + ", ".join(allowed_origins))
+logger.info(f"✅ CORS enabled for origins: {allowed_origins}")
 
 @app.get("/health")
 def health_check():
