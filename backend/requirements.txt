@@ -1,16 +1,32 @@
+# Web Framework
 fastapi==0.109.0
-uvicorn==0.27.0
+uvicorn[standard]==0.27.0
+
+# Environment & Configuration
 python-dotenv==1.0.0
-firebase-admin==6.4.0
-pillow==11.0.0
 pydantic==2.8.0
 pydantic-settings==2.1.0
+
+# Firebase & Google Cloud
+firebase-admin==6.4.0
+
+# Image Processing & Storage
+pillow==11.0.0
+opencv-python-headless==4.9.0.80
+cloudinary==1.36.0
+numpy==1.26.4
+
+# File Handling
 aiofiles==23.2.1
 python-multipart==0.0.6
+
+# Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-cloudinary==1.36.0
+
+# HTTP Requests & Validation
 requests==2.31.0
 email-validator==2.3.0
-numpy==1.26.4
-opencv-python-headless==4.9.0.80
+
+# Additional utilities
+python-dateutil==2.8.2

@@ -19,6 +19,7 @@ export default function NgoDashboard() {
     totalCleanings: 0
   })
   const [showContent, setShowContent] = useState(false)
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024)
 
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode')
@@ -36,6 +37,10 @@ export default function NgoDashboard() {
     }
     fetchGlobal()
     fetchEnvironment()
+
+    const handleResize = () => setIsMobileView(window.innerWidth < 1024)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [user])
 
   const fetchEnvironment = async () => {
@@ -85,8 +90,8 @@ export default function NgoDashboard() {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors ${darkMode
-        ? 'bg-gradient-to-b from-slate-900 to-slate-800 text-white'
-        : 'bg-gradient-to-b from-blue-50 to-green-50 text-gray-800'
+      ? 'bg-gradient-to-b from-slate-900 to-slate-800 text-white'
+      : 'bg-gradient-to-b from-blue-50 to-green-50 text-gray-800'
       }`}>
       <style>{`
         @keyframes slideDown {
@@ -119,7 +124,9 @@ export default function NgoDashboard() {
               <div className="flex items-center gap-2">
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Welcome, {user?.name}</p>
                 {platform.is_desktop && (
-                  <span className="text-[9px] bg-amber-100 text-amber-700 font-bold px-1 rounded-full uppercase">Desktop</span>
+                  <span className="text-[9px] bg-amber-100 text-amber-700 font-bold px-1 rounded-full uppercase">
+                    {isMobileView ? 'Mobile' : 'Desktop'}
+                  </span>
                 )}
               </div>
             </div>

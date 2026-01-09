@@ -18,6 +18,7 @@ export default function AdminDashboard() {
   })
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024)
 
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode))
@@ -26,6 +27,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchAllData()
     fetchEnvironment()
+
+    const handleResize = () => setIsMobileView(window.innerWidth < 1024)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   const fetchEnvironment = async () => {
@@ -186,8 +191,8 @@ export default function AdminDashboard() {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors ${darkMode
-        ? 'bg-gradient-to-b from-slate-900 to-slate-800 text-white'
-        : 'bg-gradient-to-b from-red-50 to-orange-50 text-gray-800'
+      ? 'bg-gradient-to-b from-slate-900 to-slate-800 text-white'
+      : 'bg-gradient-to-b from-red-50 to-orange-50 text-gray-800'
       }`}>
       {/* Header */}
       <header className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} border-b shadow-sm sticky top-0 z-40 transition-colors`}>
@@ -199,7 +204,9 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-2">
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>🔒 Database Management</p>
                 {platform.is_desktop && (
-                  <span className="text-[9px] bg-red-100 text-red-700 font-bold px-1 rounded-full uppercase">Desktop</span>
+                  <span className="text-[9px] bg-red-100 text-red-700 font-bold px-1 rounded-full uppercase">
+                    {isMobileView ? 'Mobile' : 'Desktop'}
+                  </span>
                 )}
               </div>
             </div>
@@ -261,8 +268,8 @@ export default function AdminDashboard() {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105 ${activeTab === tab
-                    ? 'bg-red-500 text-white'
-                    : darkMode ? 'bg-slate-700 text-gray-300' : 'bg-white text-gray-700'
+                  ? 'bg-red-500 text-white'
+                  : darkMode ? 'bg-slate-700 text-gray-300' : 'bg-white text-gray-700'
                   }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}

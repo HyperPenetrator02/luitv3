@@ -23,6 +23,7 @@ export default function UserDashboard() {
   })
   const [showContent, setShowContent] = useState(false)
   const [platform, setPlatform] = useState({ is_desktop: false })
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024)
 
   useEffect(() => {
     setShowContent(true)
@@ -31,6 +32,10 @@ export default function UserDashboard() {
     }
     fetchGlobalAnalytics()
     fetchEnvironment()
+
+    const handleResize = () => setIsMobileView(window.innerWidth < 1024)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [user])
 
   // Persist dark mode to localStorage
@@ -99,8 +104,8 @@ export default function UserDashboard() {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors ${darkMode
-        ? 'bg-gradient-to-b from-slate-900 to-slate-800 text-white'
-        : 'bg-gradient-to-b from-blue-50 to-green-50 text-gray-800'
+      ? 'bg-gradient-to-b from-slate-900 to-slate-800 text-white'
+      : 'bg-gradient-to-b from-blue-50 to-green-50 text-gray-800'
       }`}>
       <style>{`
         @keyframes slideDown {
@@ -145,7 +150,9 @@ export default function UserDashboard() {
               <div className="flex items-center gap-2">
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Welcome, {user?.name}</p>
                 {platform.is_desktop && (
-                  <span className="text-[9px] bg-cyan-100 text-cyan-700 font-bold px-1 rounded-full uppercase">Desktop</span>
+                  <span className="text-[9px] bg-cyan-100 text-cyan-700 font-bold px-1 rounded-full uppercase">
+                    {isMobileView ? 'Mobile' : 'Desktop'}
+                  </span>
                 )}
               </div>
             </div>
@@ -154,8 +161,8 @@ export default function UserDashboard() {
             <button
               onClick={() => setDarkMode(!darkMode)}
               className={`px-2 py-1 rounded-md text-sm transition transform hover:scale-110 ${darkMode
-                  ? 'bg-slate-700 text-yellow-300 hover:bg-slate-600'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                ? 'bg-slate-700 text-yellow-300 hover:bg-slate-600'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
             >
               {darkMode ? '☀️' : '🌙'}
@@ -178,8 +185,8 @@ export default function UserDashboard() {
           <div className="lg:col-span-2 space-y-8">
             {/* Hero Section */}
             <section className={`text-center p-8 rounded-2xl ${darkMode
-                ? 'bg-gradient-to-br from-slate-900 to-cyan-900'
-                : 'bg-gradient-to-br from-blue-100 via-cyan-100 to-green-100 border border-blue-50'
+              ? 'bg-gradient-to-br from-slate-900 to-cyan-900'
+              : 'bg-gradient-to-br from-blue-100 via-cyan-100 to-green-100 border border-blue-50'
               } transition-colors animate-slideUp stagger-1 transform hover:-translate-y-1 hover:shadow-xl`}>
               <h2 className={`text-5xl font-bold mb-4 ${darkMode ? 'text-cyan-300' : 'text-blue-800'} animate-slideInScale`}>
                 🌊 Clean Brahmaputra River
