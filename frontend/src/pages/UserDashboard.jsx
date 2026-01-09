@@ -201,13 +201,13 @@ export default function UserDashboard() {
               } transition-colors animate-slideUp stagger-5 transform hover:-translate-y-1`}>
               <div className="text-center border-r border-gray-100 dark:border-slate-600">
                 <p className={`text-4xl font-bold ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
-                  {globalAnalytics.totalReports.toLocaleString()}
+                  {(globalAnalytics.totalReports || 0).toLocaleString()}
                 </p>
                 <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Reports</p>
               </div>
               <div className="text-center">
                 <p className={`text-4xl font-bold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
-                  {globalAnalytics.totalCleanings.toLocaleString()}
+                  {(globalAnalytics.totalCleanings || 0).toLocaleString()}
                 </p>
                 <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Cleanings</p>
               </div>
@@ -228,19 +228,19 @@ export default function UserDashboard() {
               <h3 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-cyan-300' : 'text-gray-800'}`}>📊 Your Impact</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-slate-800/50 rounded-xl text-center">
-                  <p className="text-3xl font-bold text-cyan-300">{analytics.reportsCount}</p>
+                  <p className="text-3xl font-bold text-cyan-300">{analytics.reportsCount || 0}</p>
                   <p className="text-xs opacity-70">Reports</p>
                 </div>
                 <div className="p-4 bg-slate-800/50 rounded-xl text-center">
-                  <p className="text-3xl font-bold text-emerald-300">{analytics.cleaningsCount}</p>
+                  <p className="text-3xl font-bold text-emerald-300">{analytics.cleaningsCount || 0}</p>
                   <p className="text-xs opacity-70">Cleanups</p>
                 </div>
                 <div className="p-4 bg-slate-800/50 rounded-xl text-center">
-                  <p className="text-3xl font-bold text-purple-300">{analytics.totalPoints}</p>
+                  <p className="text-3xl font-bold text-purple-300">{analytics.totalPoints || 0}</p>
                   <p className="text-xs opacity-70">Points</p>
                 </div>
                 <div className="p-4 bg-slate-800/50 rounded-xl text-center">
-                  <p className="text-3xl font-bold text-orange-300">#{analytics.userRank}</p>
+                  <p className="text-3xl font-bold text-orange-300">#{analytics.userRank || '-'}</p>
                   <p className="text-xs opacity-70">Rank</p>
                 </div>
               </div>

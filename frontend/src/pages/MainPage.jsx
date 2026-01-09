@@ -178,13 +178,13 @@ export default function MainPage() {
               } transition-colors animate-slideUp stagger-5 transform hover:-translate-y-1`}>
               <div className="text-center border-r border-gray-100 dark:border-slate-700">
                 <p className={`text-5xl font-bold ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
-                  {analytics.totalReports.toLocaleString()}
+                  {(analytics.totalReports || 0).toLocaleString()}
                 </p>
                 <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Places Reported</p>
               </div>
               <div className="text-center">
                 <p className={`text-5xl font-bold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
-                  {analytics.totalCleanings.toLocaleString()}
+                  {(analytics.totalCleanings || 0).toLocaleString()}
                 </p>
                 <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Places Cleaned</p>
               </div>
