@@ -18,6 +18,18 @@ function App() {
   const user = useAuthStore((state) => state.user)
   const userType = useAuthStore((state) => state.userType)
   const hydrated = useAuthStore((state) => state.hydrated)
+  const setHydrated = useAuthStore((state) => state.setHydrated)
+
+  React.useEffect(() => {
+    // Fail-safe: If hydration is still stuck after 2 seconds, force it
+    const timer = setTimeout(() => {
+      if (!useAuthStore.getState().hydrated) {
+        console.log('🕒 Hydration fail-safe triggered')
+        setHydrated()
+      }
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [setHydrated])
 
   if (!hydrated) {
     return (
