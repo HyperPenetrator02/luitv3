@@ -1,6 +1,18 @@
 # LUIT - Clean Brahmaputra River Platform
 
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Visit_App-00C7B7?style=for-the-badge)](https://luitv3-cr0odoho7-hyperpens-projects.vercel.app/)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/HyperPenetrator02/luitv3)
+[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?style=for-the-badge&logo=vercel)](https://luitv3-cr0odoho7-hyperpens-projects.vercel.app/)
+
+> **🚀 [Access the Live Application Here](https://luitv3-cr0odoho7-hyperpens-projects.vercel.app/)**
+
 A web application for reporting and cleaning garbage in the Brahmaputra River using mobile-first design with React, Python, and Firebase.
+
+## 🔗 Quick Access
+
+- **Live Application**: [https://luitv3-cr0odoho7-hyperpens-projects.vercel.app/](https://luitv3-cr0odoho7-hyperpens-projects.vercel.app/)
+- **GitHub Repository**: [https://github.com/HyperPenetrator02/luitv3](https://github.com/HyperPenetrator02/luitv3)
+- **Documentation**: See sections below for setup and deployment guides
 
 ## Features
 
