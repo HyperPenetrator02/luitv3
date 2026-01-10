@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from services.image_verification import verify_cleaning_image
+# Temporary mock for Python 3.14 compatibility
+from services.image_verification_mock import verify_cleaning_image
 from services.cloudinary_service import upload_image_to_cloudinary, delete_image_from_cloudinary
 from services.firebase_service import get_document, update_document, add_document
 from datetime import datetime

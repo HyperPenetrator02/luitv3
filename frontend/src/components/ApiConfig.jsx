@@ -27,6 +27,11 @@ export default function ApiConfig({ onUpdate }) {
     };
 
     if (!show) {
+        // Hide button if environment variable is set (for production)
+        if (import.meta.env.VITE_HIDE_API_SETTINGS === 'true') {
+            return null;
+        }
+
         return (
             <button
                 onClick={() => setShow(true)}

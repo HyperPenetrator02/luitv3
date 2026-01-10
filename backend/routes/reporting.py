@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from typing import Literal, Optional
-from services.image_verification import verify_garbage_image
+# Temporary mock for Python 3.14 compatibility
+from services.image_verification_mock import verify_garbage_image
 from services.location_service import check_duplicate_location
 from services.cloudinary_service import upload_image_to_cloudinary
 from services.firebase_service import add_document, query_documents, get_document
