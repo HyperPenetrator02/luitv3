@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store'
 import { authApi } from '../api'
-import ApiConfig from '../components/ApiConfig'
 
 export default function LoginRegister() {
   const navigate = useNavigate()
@@ -290,7 +289,6 @@ export default function LoginRegister() {
           </p>
         </div>
       </div>
-      <ApiConfig />
     </div>
   )
 }
