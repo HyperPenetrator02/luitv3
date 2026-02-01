@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLocationStore, useAuthStore } from '../store'
-import { reportingApi, locationApi } from '../api'
+import { reportingApi, locationApi, getEnv } from '../api'
 
 export default function ReportingPage() {
   const navigate = useNavigate()
@@ -14,6 +14,8 @@ export default function ReportingPage() {
     const saved = localStorage.getItem('darkMode')
     return saved ? JSON.parse(saved) : false
   })
+  const [platform, setPlatform] = useState({ is_desktop: false, platform_detected: "Cloud" })
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024)
   const [wasteType, setWasteType] = useState('plastic')
   const [image, setImage] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -36,10 +38,15 @@ export default function ReportingPage() {
   // Get location on mount
   useEffect(() => {
     getLocation()
+    fetchEnvironment()
+    
+    const handleResize = () => setIsMobileView(window.innerWidth < 1024)
+    window.addEventListener('resize', handleResize)
     
     // Cleanup: stop camera on unmount
     return () => {
       stopCamera()
+      window.removeEventListener('resize', handleResize)
     }
   }, [])
 
@@ -53,6 +60,15 @@ export default function ReportingPage() {
     const interval = setInterval(getLocation, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  const fetchEnvironment = async () => {
+    try {
+      const response = await getEnv()
+      setPlatform(response.data)
+    } catch (error) {
+      console.error('Failed to fetch environment:', error)
+    }
+  }
 
   const getLocation = () => {
     setLocationLoading(true)
@@ -330,6 +346,11 @@ export default function ReportingPage() {
               <h1 className={`text-2xl font-bold ${
                 darkMode ? 'text-cyan-400' : 'text-blue-600'
               }`}>LUIT</h1>
+              {platform.is_desktop && (
+                <span className="text-[10px] bg-cyan-100 text-cyan-700 font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider block">
+                  {isMobileView ? 'Mobile View' : 'Desktop Version'}
+                </span>
+              )}
               <p className={`text-xs ${
                 darkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Report Garbage</p>

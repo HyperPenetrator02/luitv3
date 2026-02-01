@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { analyticsApi } from '../api'
+import { analyticsApi, getEnv } from '../api'
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
@@ -8,6 +8,8 @@ export default function AnalyticsPage() {
     const saved = localStorage.getItem('darkMode')
     return saved ? JSON.parse(saved) : false
   })
+  const [platform, setPlatform] = useState({ is_desktop: false, platform_detected: "Cloud" })
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024)
   const [loading, setLoading] = useState(true)
   const [global, setGlobal] = useState({
     totalReports: 0,
@@ -43,30 +45,50 @@ export default function AnalyticsPage() {
     load()
   }, [])
 
+  useEffect(() => {
+    fetchEnvironment()
+
+    const handleResize = () => setIsMobileView(window.innerWidth < 1024)
+    window.addEventListener('resize', handleResize)
+
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const fetchEnvironment = async () => {
+    try {
+      const response = await getEnv()
+      setPlatform(response.data)
+    } catch (error) {
+      console.error('Failed to fetch environment:', error)
+    }
+  }
+
   const wasteItems = Object.entries(global.wasteBreakdown || {})
   const maxWaste = Math.max(1, ...wasteItems.map(([, v]) => v || 0))
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors ${
-      darkMode ? 'bg-gradient-to-b from-slate-900 to-cyan-900' : 'bg-gradient-to-b from-blue-50 to-green-50'
-    }`}>
-      <header className={`sticky top-0 z-40 border-b transition-colors ${
-        darkMode ? 'bg-slate-800 border-cyan-700' : 'bg-white border-cyan-200 shadow-sm'
+    <div className={`min-h-screen flex flex-col transition-colors ${darkMode ? 'bg-gradient-to-b from-slate-900 to-cyan-900' : 'bg-gradient-to-b from-blue-50 to-green-50'
       }`}>
+      <header className={`sticky top-0 z-40 border-b transition-colors ${darkMode ? 'bg-slate-800 border-cyan-700' : 'bg-white border-cyan-200 shadow-sm'
+        }`}>
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="text-3xl">📊</span>
             <div>
               <h1 className={`text-2xl font-bold ${darkMode ? 'text-cyan-400' : 'text-blue-600'}`}>Analytics</h1>
+              {platform.is_desktop && (
+                <span className="text-[10px] bg-cyan-100 text-cyan-700 font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider block">
+                  {isMobileView ? 'Mobile View' : 'Desktop Version'}
+                </span>
+              )}
               <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-sm`}>Platform insights</p>
             </div>
           </div>
           <div className="flex gap-2 items-center">
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`px-2 py-1 rounded-md text-sm transition transform hover:scale-110 ${
-                darkMode ? 'bg-slate-700 text-yellow-300 hover:bg-slate-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+              className={`px-2 py-1 rounded-md text-sm transition transform hover:scale-110 ${darkMode ? 'bg-slate-700 text-yellow-300 hover:bg-slate-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
             >
               {darkMode ? '☀️' : '🌙'}
             </button>
@@ -81,24 +103,23 @@ export default function AnalyticsPage() {
       </header>
 
       <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full space-y-8">
-        <section className={`rounded-2xl border p-6 ${
-          darkMode ? 'bg-slate-800 border-cyan-700' : 'bg-white border-cyan-200 shadow-md'
-        }`}>
+        <section className={`rounded-2xl border p-6 ${darkMode ? 'bg-slate-800 border-cyan-700' : 'bg-white border-cyan-200 shadow-md'
+          }`}>
           {loading ? (
             <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Loading analytics...</p>
           ) : (
             <div className="grid md:grid-cols-4 gap-4">
               {[{
                 title: 'Total Reports', value: global.totalReports, icon: '📝'
-              },{
+              }, {
                 title: 'Total Cleanings', value: global.totalCleanings, icon: '🧹'
-              },{
+              }, {
                 title: 'Active Reports', value: global.activeReports, icon: '⚠️'
-              },{
+              }, {
                 title: 'Most Reported Waste', value: (() => {
                   const entries = Object.entries(global.wasteBreakdown || {})
                   if (!entries.length) return 'N/A'
-                  const top = entries.sort((a,b)=>b[1]-a[1])[0]
+                  const top = entries.sort((a, b) => b[1] - a[1])[0]
                   return `${top[0]} (${top[1]})`
                 })(), icon: '🏷️'
               }].map((c) => (
@@ -125,9 +146,9 @@ export default function AnalyticsPage() {
           <div className="grid md:grid-cols-3 gap-4">
             {[{
               title: 'This Week', reports: buckets.reports.week, cleanings: buckets.cleanings.week
-            },{
+            }, {
               title: 'This Month', reports: buckets.reports.month, cleanings: buckets.cleanings.month
-            },{
+            }, {
               title: 'This Year', reports: buckets.reports.year, cleanings: buckets.cleanings.year
             }].map((b) => (
               <div key={b.title} className={`p-5 rounded-xl border ${darkMode ? 'bg-slate-700/70 border-cyan-700 text-white' : 'bg-emerald-50 border-emerald-200 text-slate-900'}`}>

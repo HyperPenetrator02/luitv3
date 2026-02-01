@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLocationStore, useAuthStore } from '../store'
-import { cleaningApi, reportingApi } from '../api'
+import { cleaningApi, reportingApi, getEnv } from '../api'
 
 // Haversine distance calculation
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -9,7 +9,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371000 // Earth's radius in meters
   const dLat = toRad(lat2 - lat1)
   const dLon = toRad(lon2 - lon1)
-  const a = Math.sin(dLat / 2) ** 2 + 
+  const a = Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c // Returns distance in meters
@@ -22,11 +22,13 @@ export default function CleaningPage() {
   const userType = useAuthStore((state) => state.userType)
   const setLocation = useLocationStore((state) => state.setLocation)
   const { latitude, longitude } = useLocationStore()
-  
+
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode')
     return saved ? JSON.parse(saved) : false
   })
+  const [platform, setPlatform] = useState({ is_desktop: false, platform_detected: "Cloud" })
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024)
   const [beforeImage, setBeforeImage] = useState(null)
   const [beforeImageBase64, setBeforeImageBase64] = useState(null)
   const [afterImage, setAfterImage] = useState(null)
@@ -48,12 +50,17 @@ export default function CleaningPage() {
   useEffect(() => {
     fetchReport()
     getLocation()
-    
+    fetchEnvironment()
+
+    const handleResize = () => setIsMobileView(window.innerWidth < 1024)
+    window.addEventListener('resize', handleResize)
+
     // Cleanup: stop camera on unmount
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop())
       }
+      window.removeEventListener('resize', handleResize)
     }
   }, [])
 
@@ -72,17 +79,26 @@ export default function CleaningPage() {
         report.longitude
       )
       setDistance(dist)
-      
+
       const withinRange = dist <= 150
       setIsWithinRange(withinRange)
-      
+
       console.log(`📍 Distance to cleanup: ${dist.toFixed(1)}m - ${withinRange ? '✅ In range' : '❌ Out of range'}`)
-      
+
       if (!withinRange) {
         setError(`⚠️ You are ${dist.toFixed(0)}m away. Get closer to the location (within 150m) to start cleaning.`)
       }
     }
   }, [report, latitude, longitude])
+
+  const fetchEnvironment = async () => {
+    try {
+      const response = await getEnv()
+      setPlatform(response.data)
+    } catch (error) {
+      console.error('Failed to fetch environment:', error)
+    }
+  }
 
   const fetchReport = async () => {
     try {
@@ -90,11 +106,11 @@ export default function CleaningPage() {
       const response = await reportingApi.getReport(reportId)
       console.log(`📦 Full API Response:`, response)
       console.log(`📦 response.data:`, response.data)
-      
+
       // Backend returns { success: true, report: {...} }
       const reportData = response.data?.report
       console.log(`📋 Report data:`, reportData)
-      
+
       // Check if report exists and has required data; if not, navigate back silently
       if (!reportData || !reportData.id) {
         console.warn(`⚠️ Report ${reportId} not found or missing ID, redirecting to cleaner`)
@@ -103,19 +119,19 @@ export default function CleaningPage() {
         navigate('/cleaner')
         return
       }
-      
+
       setReport(reportData)
       setBeforeImage(reportData.imageUrl)
-      
+
       // Check if image URL is valid; if not, navigate back silently
       if (!reportData.imageUrl) {
         console.warn(`⚠️ Report ${reportId} missing imageUrl, redirecting to cleaner`)
         navigate('/cleaner')
         return
       }
-      
+
       console.log(`✅ Report loaded successfully`)
-      
+
       // Convert image URL to base64
       try {
         const img = new Image()
@@ -174,14 +190,14 @@ export default function CleaningPage() {
   const startCamera = async () => {
     try {
       setError('')
-      
+
       // Check if within 150m range
       if (!isWithinRange) {
         setError(`❌ You must be within 150m of the cleanup location. Currently ${distance?.toFixed(0)}m away. Please move closer to proceed.`)
         setCameraStarted(false)
         return
       }
-      
+
       setCameraStarted(true)
       const constraints = {
         video: {
@@ -191,10 +207,10 @@ export default function CleaningPage() {
         },
         audio: false
       }
-      
+
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
       streamRef.current = stream
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         videoRef.current.onloadedmetadata = () => {
@@ -223,32 +239,32 @@ export default function CleaningPage() {
       setError('Camera not ready. Please wait...')
       return
     }
-    
+
     try {
       const video = videoRef.current
       const canvas = canvasRef.current
-      
+
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
-      
+
       if (canvas.width === 0 || canvas.height === 0) {
         setError('Camera not fully loaded. Please try again.')
         return
       }
-      
+
       const context = canvas.getContext('2d')
       context.drawImage(video, 0, 0, canvas.width, canvas.height)
-      
+
       let imageData = canvas.toDataURL('image/jpeg', 0.8)
-      
+
       let quality = 0.8
       while (imageData.length > 1000000 && quality > 0.3) {
         quality -= 0.1
         imageData = canvas.toDataURL('image/jpeg', quality)
       }
-      
+
       console.log(`📷 After image captured: ${(imageData.length / 1024).toFixed(2)} KB`)
-      
+
       setAfterImage(imageData)
       setError('')
       setVerifying(true)
@@ -282,7 +298,7 @@ export default function CleaningPage() {
         setAfterImage(null)
         return
       }
-      
+
       setVerifying(false)
     } catch (err) {
       console.error('❌ Capture error:', err)
@@ -325,42 +341,41 @@ export default function CleaningPage() {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors ${
-      darkMode 
-        ? 'bg-gradient-to-b from-slate-900 to-cyan-900' 
+    <div className={`min-h-screen flex flex-col transition-colors ${darkMode
+        ? 'bg-gradient-to-b from-slate-900 to-cyan-900'
         : 'bg-gradient-to-b from-blue-50 to-green-50'
-    }`}>
-      <header className={`sticky top-0 z-40 border-b transition-colors ${
-        darkMode ? 'bg-slate-800 border-cyan-700' : 'bg-white border-cyan-200 shadow-sm'
       }`}>
+      <header className={`sticky top-0 z-40 border-b transition-colors ${darkMode ? 'bg-slate-800 border-cyan-700' : 'bg-white border-cyan-200 shadow-sm'
+        }`}>
         <div className="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="text-3xl">💧</span>
             <div>
-              <h1 className={`text-2xl font-bold ${
-                darkMode ? 'text-emerald-400' : 'text-green-600'
-              }`}>LUIT</h1>
-              <p className={`text-xs ${
-                darkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>🧹 Cleanup</p>
+              <h1 className={`text-2xl font-bold ${darkMode ? 'text-emerald-400' : 'text-green-600'
+                }`}>LUIT</h1>
+              {platform.is_desktop && (
+                <span className="text-[10px] bg-cyan-100 text-cyan-700 font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider block">
+                  {isMobileView ? 'Mobile View' : 'Desktop Version'}
+                </span>
+              )}
+              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>🧹 Cleanup</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`px-2 py-1 rounded-md text-sm transition transform hover:scale-110 ${
-                darkMode 
-                  ? 'bg-slate-700 text-yellow-300 hover:bg-slate-600' 
+              className={`px-2 py-1 rounded-md text-sm transition transform hover:scale-110 ${darkMode
+                  ? 'bg-slate-700 text-yellow-300 hover:bg-slate-600'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+                }`}
             >
               {darkMode ? '☀️' : '🌙'}
             </button>
             <button
               onClick={() => navigate('/cleaner')}
-              className={`text-2xl ${
-                darkMode ? 'text-gray-400 hover:text-cyan-300' : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className={`text-2xl ${darkMode ? 'text-gray-400 hover:text-cyan-300' : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
               ✕
             </button>
@@ -370,9 +385,8 @@ export default function CleaningPage() {
 
       <main className="flex-1 max-w-md mx-auto px-4 py-6 pb-12 w-full">
         {error && (
-          <div className={`border p-4 rounded-lg mb-4 ${
-            darkMode ? 'bg-red-900 border-red-700 text-red-200' : 'bg-red-50 border-red-200 text-red-700'
-          }`}>
+          <div className={`border p-4 rounded-lg mb-4 ${darkMode ? 'bg-red-900 border-red-700 text-red-200' : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
             {error}
           </div>
         )}
@@ -384,77 +398,65 @@ export default function CleaningPage() {
         ) : (
           <>
             {/* Before Image */}
-            <div className={`rounded-xl p-4 mb-6 overflow-hidden border ${
-              darkMode ? 'bg-slate-800 border-cyan-700 shadow-lg' : 'bg-white border-cyan-200 shadow-md'
-            }`}>
+            <div className={`rounded-xl p-4 mb-6 overflow-hidden border ${darkMode ? 'bg-slate-800 border-cyan-700 shadow-lg' : 'bg-white border-cyan-200 shadow-md'
+              }`}>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-2xl">📸</span>
-                <h2 className={`font-bold ${
-                  darkMode ? 'text-gray-300' : 'text-gray-800'
-                }`}>Before Photo</h2>
+                <h2 className={`font-bold ${darkMode ? 'text-gray-300' : 'text-gray-800'
+                  }`}>Before Photo</h2>
               </div>
               <img
                 src={beforeImage}
                 alt="Before"
-                className={`w-full rounded-lg object-cover border-2 ${
-                  darkMode ? 'border-cyan-700' : 'border-blue-200'
-                }`}
+                className={`w-full rounded-lg object-cover border-2 ${darkMode ? 'border-cyan-700' : 'border-blue-200'
+                  }`}
                 style={{ maxHeight: '300px' }}
               />
-              <p className={`text-sm mt-3 text-center ${
-                darkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>Original report</p>
+              <p className={`text-sm mt-3 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>Original report</p>
             </div>
 
             {/* Instructions */}
-            <div className={`border rounded-xl p-4 mb-6 ${
-              darkMode ? 'bg-emerald-900 border-emerald-700' : 'bg-green-50 border-green-200'
-            }`}>
+            <div className={`border rounded-xl p-4 mb-6 ${darkMode ? 'bg-emerald-900 border-emerald-700' : 'bg-green-50 border-green-200'
+              }`}>
               <div className="flex items-start gap-3">
                 <span className="text-2xl">🧹</span>
                 <div>
-                  <p className={`font-semibold ${
-                    darkMode ? 'text-emerald-200' : 'text-gray-800'
-                  }`}>Clean this area</p>
-                  <p className={`text-sm mt-1 ${
-                    darkMode ? 'text-emerald-300' : 'text-gray-600'
-                  }`}>Take a photo after cleaning to verify</p>
+                  <p className={`font-semibold ${darkMode ? 'text-emerald-200' : 'text-gray-800'
+                    }`}>Clean this area</p>
+                  <p className={`text-sm mt-1 ${darkMode ? 'text-emerald-300' : 'text-gray-600'
+                    }`}>Take a photo after cleaning to verify</p>
                 </div>
               </div>
             </div>
 
             {/* Distance Information */}
-            <div className={`rounded-xl p-4 mb-6 border ${
-              darkMode ? 'bg-slate-800 border-cyan-700 shadow-lg' : 'bg-white border-cyan-200 shadow-md'
-            }`}>
+            <div className={`rounded-xl p-4 mb-6 border ${darkMode ? 'bg-slate-800 border-cyan-700 shadow-lg' : 'bg-white border-cyan-200 shadow-md'
+              }`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">📍</span>
-                  <h3 className={`font-semibold ${
-                    darkMode ? 'text-gray-300' : 'text-gray-800'
-                  }`}>Location</h3>
+                  <h3 className={`font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-800'
+                    }`}>Location</h3>
                 </div>
                 {distance !== null && (
-                  <div className={`text-sm font-bold px-3 py-1 rounded-full ${
-                    isWithinRange 
+                  <div className={`text-sm font-bold px-3 py-1 rounded-full ${isWithinRange
                       ? darkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-700'
                       : darkMode ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-700'
-                  }`}>
+                    }`}>
                     {isWithinRange ? '✅' : '❌'} {distance.toFixed(1)}m
                   </div>
                 )}
               </div>
               {locationLoading && (
-                <p className={`text-sm ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>Getting your location...</p>
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>Getting your location...</p>
               )}
               {!locationLoading && distance !== null && (
                 <div>
-                  <p className={`text-sm ${
-                    darkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    {isWithinRange 
+                  <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                    {isWithinRange
                       ? `✅ You are within range to start cleaning (${distance.toFixed(1)}m away)`
                       : `⚠️ You must get closer to the cleanup location. Currently ${distance.toFixed(0)}m away - need to be within 150m`
                     }
@@ -462,11 +464,10 @@ export default function CleaningPage() {
                   {!isWithinRange && (
                     <button
                       onClick={getLocation}
-                      className={`mt-3 w-full py-2 font-semibold rounded-lg text-sm ${
-                        darkMode 
-                          ? 'bg-cyan-900 hover:bg-cyan-800 text-cyan-200' 
+                      className={`mt-3 w-full py-2 font-semibold rounded-lg text-sm ${darkMode
+                          ? 'bg-cyan-900 hover:bg-cyan-800 text-cyan-200'
                           : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
-                      }`}
+                        }`}
                     >
                       🔄 Refresh Location
                     </button>
@@ -476,18 +477,16 @@ export default function CleaningPage() {
             </div>
 
             {/* Camera Section */}
-            <div className={`rounded-xl p-4 mb-6 border ${
-              darkMode ? 'bg-slate-800 border-cyan-700 shadow-lg' : 'bg-white border-cyan-200 shadow-md'
-            }`}>
+            <div className={`rounded-xl p-4 mb-6 border ${darkMode ? 'bg-slate-800 border-cyan-700 shadow-lg' : 'bg-white border-cyan-200 shadow-md'
+              }`}>
               {!cameraStarted && (
                 <button
                   onClick={startCamera}
                   disabled={!isWithinRange || locationLoading}
-                  className={`w-full py-4 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-lg ${
-                    darkMode
+                  className={`w-full py-4 text-white font-bold rounded-lg flex items-center justify-center gap-2 text-lg ${darkMode
                       ? 'bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-700'
                       : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400'
-                  } disabled:cursor-not-allowed`}
+                    } disabled:cursor-not-allowed`}
                 >
                   <span>📷</span> {locationLoading ? 'Getting Location...' : 'Open Camera'}
                 </button>
@@ -495,32 +494,28 @@ export default function CleaningPage() {
 
               {cameraStarted && (
                 <div>
-                  <p className={`text-sm text-center mb-3 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>Position the cleaned area</p>
+                  <p className={`text-sm text-center mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Position the cleaned area</p>
                   <video
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    className={`w-full bg-black rounded-lg mb-4 border-2 ${
-                      darkMode ? 'border-cyan-700' : 'border-gray-300'
-                    }`}
+                    className={`w-full bg-black rounded-lg mb-4 border-2 ${darkMode ? 'border-cyan-700' : 'border-gray-300'
+                      }`}
                     style={{ maxHeight: '400px', objectFit: 'cover' }}
                   />
                   {!cameraActive && (
-                    <p className={`text-center py-2 ${
-                      darkMode ? 'text-gray-400' : 'text-gray-500'
-                    }`}>Initializing camera...</p>
+                    <p className={`text-center py-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'
+                      }`}>Initializing camera...</p>
                   )}
                   {cameraActive && !afterImage && (
                     <button
                       onClick={captureImage}
                       disabled={verifying}
-                      className={`w-full py-4 text-white font-bold rounded-lg text-lg flex items-center justify-center gap-2 ${
-                        darkMode
+                      className={`w-full py-4 text-white font-bold rounded-lg text-lg flex items-center justify-center gap-2 ${darkMode
                           ? 'bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700'
                           : 'bg-green-600 hover:bg-green-700 disabled:bg-gray-400'
-                      }`}
+                        }`}
                     >
                       <span>📸</span> {verifying ? 'Verifying...' : 'Take After Photo'}
                     </button>
@@ -531,26 +526,22 @@ export default function CleaningPage() {
 
             {/* Verification Result */}
             {verification && (
-              <div className={`rounded-xl p-4 mb-6 border ${
-                darkMode ? 'bg-slate-800 border-cyan-700 shadow-lg' : 'bg-white border-cyan-200 shadow-md'
-              }`}>
+              <div className={`rounded-xl p-4 mb-6 border ${darkMode ? 'bg-slate-800 border-cyan-700 shadow-lg' : 'bg-white border-cyan-200 shadow-md'
+                }`}>
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-3xl">{verification.is_cleaned ? '✅' : '❌'}</span>
                   <div>
-                    <p className={`font-bold ${
-                      darkMode ? 'text-gray-300' : 'text-gray-800'
-                    }`}>{verification.is_cleaned ? 'Cleanup Verified!' : 'Not Cleaned'}</p>
-                    <p className={`text-sm ${
-                      darkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>{verification.message}</p>
+                    <p className={`font-bold ${darkMode ? 'text-gray-300' : 'text-gray-800'
+                      }`}>{verification.is_cleaned ? 'Cleanup Verified!' : 'Not Cleaned'}</p>
+                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>{verification.message}</p>
                   </div>
                 </div>
 
                 {verification.is_cleaned && afterImage && (
                   <div className="mb-4">
-                    <h3 className={`font-bold mb-2 ${
-                      darkMode ? 'text-gray-300' : 'text-gray-800'
-                    }`}>After Photo</h3>
+                    <h3 className={`font-bold mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-800'
+                      }`}>After Photo</h3>
                     <img
                       src={afterImage}
                       alt="After"
@@ -564,11 +555,10 @@ export default function CleaningPage() {
                   <button
                     onClick={handleSubmit}
                     disabled={loading}
-                    className={`w-full py-4 text-white font-bold rounded-lg text-lg ${
-                      darkMode
+                    className={`w-full py-4 text-white font-bold rounded-lg text-lg ${darkMode
                         ? 'bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700'
                         : 'bg-green-600 hover:bg-green-700 disabled:bg-gray-400'
-                    }`}
+                      }`}
                   >
                     {loading ? '⏳ Submitting...' : '✅ Confirm Cleanup'}
                   </button>
@@ -585,9 +575,8 @@ export default function CleaningPage() {
                         streamRef.current.getTracks().forEach(track => track.stop())
                       }
                     }}
-                    className={`w-full py-4 text-white font-bold rounded-lg text-lg ${
-                      darkMode ? 'bg-slate-600 hover:bg-slate-700' : 'bg-gray-600 hover:bg-gray-700'
-                    }`}
+                    className={`w-full py-4 text-white font-bold rounded-lg text-lg ${darkMode ? 'bg-slate-600 hover:bg-slate-700' : 'bg-gray-600 hover:bg-gray-700'
+                      }`}
                   >
                     Try Again
                   </button>
@@ -601,15 +590,12 @@ export default function CleaningPage() {
       </main>
 
       {/* Footer */}
-      <footer className={`border-t mt-12 py-6 text-center transition-colors ${
-        darkMode ? 'border-slate-700 bg-slate-800' : 'border-gray-200 bg-white'
-      }`}>
-        <p className={`text-sm ${
-          darkMode ? 'text-gray-400' : 'text-gray-600'
+      <footer className={`border-t mt-12 py-6 text-center transition-colors ${darkMode ? 'border-slate-700 bg-slate-800' : 'border-gray-200 bg-white'
         }`}>
-          Made with 💙 by <span className={`font-bold ${
-            darkMode ? 'text-cyan-400' : 'text-blue-600'
-          }`}>LuitLabs</span>
+        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+          Made with 💙 by <span className={`font-bold ${darkMode ? 'text-cyan-400' : 'text-blue-600'
+            }`}>LuitLabs</span>
         </p>
       </footer>
     </div>

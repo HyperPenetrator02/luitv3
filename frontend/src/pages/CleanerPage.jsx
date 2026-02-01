@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store'
-import { cleaningApi } from '../api'
+import { cleaningApi, getEnv } from '../api'
 
 export default function CleanerPage() {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const userType = useAuthStore((state) => state.userType)
-  
+
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode')
     return saved ? JSON.parse(saved) : false
   })
+  const [platform, setPlatform] = useState({ is_desktop: false, platform_detected: "Cloud" })
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024)
   const [cleanings, setCleanings] = useState([])
   const [selectedTab, setSelectedTab] = useState('plastic')
   const [loading, setLoading] = useState(true)
@@ -21,8 +23,26 @@ export default function CleanerPage() {
   }, [darkMode])
 
   useEffect(() => {
+    fetchEnvironment()
+
+    const handleResize = () => setIsMobileView(window.innerWidth < 1024)
+    window.addEventListener('resize', handleResize)
+
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  useEffect(() => {
     fetchCleanings()
   }, [selectedTab])
+
+  const fetchEnvironment = async () => {
+    try {
+      const response = await getEnv()
+      setPlatform(response.data)
+    } catch (error) {
+      console.error('Failed to fetch environment:', error)
+    }
+  }
 
   const fetchCleanings = async () => {
     setLoading(true)
@@ -40,48 +60,47 @@ export default function CleanerPage() {
   const wasteTypes = ['plastic', 'organic', 'mixed', 'toxic']
   if (userType === 'ngo') wasteTypes.push('sewage')
 
-    const handleCleanClick = (reportId) => {
-      console.log('🔧 Clean button clicked, navigating to report:', reportId)
-      navigate(`/cleaning/${reportId}`)
-    }
+  const handleCleanClick = (reportId) => {
+    console.log('🔧 Clean button clicked, navigating to report:', reportId)
+    navigate(`/cleaning/${reportId}`)
+  }
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors ${
-      darkMode 
-        ? 'bg-gradient-to-b from-slate-900 to-cyan-900' 
+    <div className={`min-h-screen flex flex-col transition-colors ${darkMode
+        ? 'bg-gradient-to-b from-slate-900 to-cyan-900'
         : 'bg-gradient-to-b from-blue-50 to-green-50'
-    }`}>
-      <header className={`sticky top-0 z-40 border-b transition-colors ${
-        darkMode ? 'bg-slate-800 border-cyan-700' : 'bg-white border-cyan-200 shadow-sm'
       }`}>
+      <header className={`sticky top-0 z-40 border-b transition-colors ${darkMode ? 'bg-slate-800 border-cyan-700' : 'bg-white border-cyan-200 shadow-sm'
+        }`}>
         <div className="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="text-3xl">💧</span>
             <div>
-              <h1 className={`text-2xl font-bold ${
-                darkMode ? 'text-emerald-400' : 'text-green-600'
-              }`}>LUIT</h1>
-              <p className={`text-xs ${
-                darkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>Cleanup Areas</p>
+              <h1 className={`text-2xl font-bold ${darkMode ? 'text-emerald-400' : 'text-green-600'
+                }`}>LUIT</h1>
+              {platform.is_desktop && (
+                <span className="text-[10px] bg-cyan-100 text-cyan-700 font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider block">
+                  {isMobileView ? 'Mobile View' : 'Desktop Version'}
+                </span>
+              )}
+              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Cleanup Areas</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`px-2 py-1 rounded-md text-sm transition transform hover:scale-110 ${
-                darkMode 
-                  ? 'bg-slate-700 text-yellow-300 hover:bg-slate-600' 
+              className={`px-2 py-1 rounded-md text-sm transition transform hover:scale-110 ${darkMode
+                  ? 'bg-slate-700 text-yellow-300 hover:bg-slate-600'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+                }`}
             >
               {darkMode ? '☀️' : '🌙'}
             </button>
             <button
               onClick={() => navigate('/')}
-              className={`text-2xl ${
-                darkMode ? 'text-gray-400 hover:text-cyan-300' : 'text-gray-600 hover:text-gray-800'
-              }`}
+              className={`text-2xl ${darkMode ? 'text-gray-400 hover:text-cyan-300' : 'text-gray-600 hover:text-gray-800'
+                }`}
             >
               ✕
             </button>
@@ -96,11 +115,10 @@ export default function CleanerPage() {
             <button
               key={type}
               onClick={() => setSelectedTab(type)}
-              className={`px-4 py-2 rounded-full whitespace-nowrap font-semibold transition ${
-                selectedTab === type
+              className={`px-4 py-2 rounded-full whitespace-nowrap font-semibold transition ${selectedTab === type
                   ? darkMode ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white'
                   : darkMode ? 'bg-slate-700 text-gray-300 hover:bg-slate-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+                }`}
             >
               {type.charAt(0).toUpperCase() + type.slice(1)}
             </button>
@@ -123,83 +141,74 @@ export default function CleanerPage() {
             {cleanings
               .filter(c => !!c.imageUrl) // extra guard against empty images
               .map(cleaning => (
-              <div
-                key={cleaning.id}
-                className={`rounded-lg overflow-hidden transition transform hover:scale-105 border ${
-                  darkMode ? 'bg-slate-800 border-cyan-700 shadow-lg' : 'bg-white border-cyan-200 shadow-md hover:shadow-lg'
-                }`}
-              >
-                <img
-                  src={cleaning.imageUrl}
-                  alt="Garbage area"
-                  className="w-full h-48 object-cover"
-                  onError={(e) => {
-                    // Hide cards with broken images
-                    e.currentTarget.onerror = null
-                    e.currentTarget.closest('div').style.display = 'none'
-                  }}
-                />
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className={`font-semibold ${
-                        darkMode ? 'text-gray-300' : 'text-gray-800'
-                      }`}>{cleaning.wasteType}</p>
-                      <p className={`text-sm ${
-                        darkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        {(() => {
-                          const km = Number(cleaning.distanceKm ?? cleaning.distance ?? 0)
-                          if (!isFinite(km)) return '📍 distance unavailable'
-                          if (km >= 1) return `📍 ${km.toFixed(2)} km away`
-                          return `📍 ${Math.max(1, Math.round(km * 1000))} m away`
-                        })()}
-                      </p>
+                <div
+                  key={cleaning.id}
+                  className={`rounded-lg overflow-hidden transition transform hover:scale-105 border ${darkMode ? 'bg-slate-800 border-cyan-700 shadow-lg' : 'bg-white border-cyan-200 shadow-md hover:shadow-lg'
+                    }`}
+                >
+                  <img
+                    src={cleaning.imageUrl}
+                    alt="Garbage area"
+                    className="w-full h-48 object-cover"
+                    onError={(e) => {
+                      // Hide cards with broken images
+                      e.currentTarget.onerror = null
+                      e.currentTarget.closest('div').style.display = 'none'
+                    }}
+                  />
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className={`font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-800'
+                          }`}>{cleaning.wasteType}</p>
+                        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
+                          {(() => {
+                            const km = Number(cleaning.distanceKm ?? cleaning.distance ?? 0)
+                            if (!isFinite(km)) return '📍 distance unavailable'
+                            if (km >= 1) return `📍 ${km.toFixed(2)} km away`
+                            return `📍 ${Math.max(1, Math.round(km * 1000))} m away`
+                          })()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-bold ${darkMode ? 'text-emerald-300' : 'text-green-600'
+                          }`}>{cleaning.points} pts</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-bold ${
-                        darkMode ? 'text-emerald-300' : 'text-green-600'
-                      }`}>{cleaning.points} pts</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
                         onClick={() => handleCleanClick(cleaning.id)}
-                      className={`py-2 text-white font-semibold rounded-lg text-sm ${
-                        darkMode ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-green-600 hover:bg-green-700'
-                      }`}
-                    >
-                      Clean
-                    </button>
-                    <button
-                      onClick={() => {
-                        const url = `https://www.google.com/maps/search/?api=1&query=${cleaning.latitude},${cleaning.longitude}`
-                        window.open(url, '_blank')
-                      }}
-                      className={`py-2 text-white font-semibold rounded-lg text-sm ${
-                        darkMode ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-blue-600 hover:bg-blue-700'
-                      }`}
-                    >
-                      Navigate
-                    </button>
+                        className={`py-2 text-white font-semibold rounded-lg text-sm ${darkMode ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-green-600 hover:bg-green-700'
+                          }`}
+                      >
+                        Clean
+                      </button>
+                      <button
+                        onClick={() => {
+                          const url = `https://www.google.com/maps/search/?api=1&query=${cleaning.latitude},${cleaning.longitude}`
+                          window.open(url, '_blank')
+                        }}
+                        className={`py-2 text-white font-semibold rounded-lg text-sm ${darkMode ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-blue-600 hover:bg-blue-700'
+                          }`}
+                      >
+                        Navigate
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className={`border-t mt-12 py-6 text-center transition-colors ${
-        darkMode ? 'border-slate-700 bg-slate-800' : 'border-gray-200 bg-white'
-      }`}>
-        <p className={`text-sm ${
-          darkMode ? 'text-gray-400' : 'text-gray-600'
+      <footer className={`border-t mt-12 py-6 text-center transition-colors ${darkMode ? 'border-slate-700 bg-slate-800' : 'border-gray-200 bg-white'
         }`}>
-          Made with 💙 by <span className={`font-bold ${
-            darkMode ? 'text-cyan-400' : 'text-blue-600'
-          }`}>LuitLabs</span>
+        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+          Made with 💙 by <span className={`font-bold ${darkMode ? 'text-cyan-400' : 'text-blue-600'
+            }`}>LuitLabs</span>
         </p>
       </footer>
     </div>

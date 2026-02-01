@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store'
-import { authApi } from '../api'
+import { authApi, getEnv } from '../api'
 
 export default function LoginRegister() {
   const navigate = useNavigate()
@@ -20,6 +20,8 @@ export default function LoginRegister() {
       return false
     }
   })
+  const [platform, setPlatform] = useState({ is_desktop: false, platform_detected: "Cloud" })
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -32,6 +34,24 @@ export default function LoginRegister() {
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode))
   }, [darkMode])
+
+  useEffect(() => {
+    fetchEnvironment()
+
+    const handleResize = () => setIsMobileView(window.innerWidth < 1024)
+    window.addEventListener('resize', handleResize)
+
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const fetchEnvironment = async () => {
+    try {
+      const response = await getEnv()
+      setPlatform(response.data)
+    } catch (error) {
+      console.error('Failed to fetch environment:', error)
+    }
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -106,6 +126,11 @@ export default function LoginRegister() {
           <div className="flex items-center gap-2">
             <span className="text-3xl">💧</span>
             <h1 className={`text-2xl font-bold ${darkMode ? 'text-cyan-400' : 'text-blue-600'}`}>LUIT</h1>
+            {platform.is_desktop && (
+              <span className="text-[10px] bg-cyan-100 text-cyan-700 font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                {isMobileView ? 'Mobile' : 'Desktop'}
+              </span>
+            )}
           </div>
           <button
             onClick={() => setDarkMode(!darkMode)}

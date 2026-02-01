@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="StatMaxer - Life Gamification Dashboard. Track habits, earn XP, level up your life.">
+    <title>StatMaxer | Life Gamification Dashboard</title>
+    <link rel="stylesheet" href="styles/index.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-icon active" data-view="daily" title="Daily Stats">📊</div>
+            <div class="sidebar-icon" data-view="skills" title="Skill Trees">🌳</div>
+            <div class="sidebar-icon" data-view="settings" title="Settings">⚙️</div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Player Level Header -->
+            <header class="player-header" id="playerHeader">
+                <div class="player-info">
+                    <span class="player-title">PLAYER LEVEL</span>
+                    <span class="player-level" id="playerLevel">LVL 0</span>
+                </div>
+                <div class="level-bar-container">
+                    <div class="level-bar" id="levelBar" style="width: 0%"></div>
+                    <span class="level-text" id="levelText">0 / 100 XP</span>
+                </div>
+            </header>
+
+            <!-- Habits Section -->
+            <section class="habits-section">
+                <div class="section-header">
+                    <h2 class="section-title">// HABIT_TRACKER</h2>
+                    <button class="add-habit-btn" id="addHabitBtn">+ NEW HABIT</button>
+                </div>
+                
+                <div id="habitsContainer">
+                    <!-- Habit rows will be dynamically inserted here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add Habit Modal -->
+    <div class="modal-overlay" id="habitModal">
+        <div class="modal">
+            <h3 class="modal-title">// CREATE_HABIT</h3>
+            <form id="habitForm">
+                <div class="form-group">
+                    <label class="form-label">HABIT_NAME:</label>
+                    <input type="text" class="form-input" id="habitName" placeholder="e.g., Gym Workout" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">ICON:</label>
+                    <input type="text" class="form-input" id="habitIcon" placeholder="🏋️" maxlength="4">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">GOAL_VALUE (days):</label>
+                    <input type="number" class="form-input" id="habitGoal" value="30" min="1" max="365">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">CANCEL</button>
+                    <button type="submit" class="btn btn-primary">CREATE</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js" type="module"></script>
+</body>
+</html>

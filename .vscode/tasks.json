@@ -1,0 +1,79 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run AI Enhancer",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "${workspaceFolder}/enhancer.py",
+                "${file}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        },
+        {
+            "label": "Run AI Enhancer (4K Upscale Only)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "${workspaceFolder}/enhancer.py",
+                "${file}",
+                "--skip-interpolation"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Run AI Enhancer (60fps Only)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "${workspaceFolder}/enhancer.py",
+                "${file}",
+                "--skip-upscale"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Setup Environment",
+            "type": "shell",
+            "command": "${workspaceFolder}/setup_env.bat",
+            "windows": {
+                "command": "${workspaceFolder}\\setup_env.bat"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            },
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        }
+    ]
+}
